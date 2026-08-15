@@ -1,4 +1,7 @@
-"""Compare sealed vs delivered Git locus. Path and instruction axes are T3+."""
+"""Compare sealed vs delivered Git locus and changed paths.
+
+Instruction verification is T4+.
+"""
 
 from __future__ import annotations
 
@@ -8,19 +11,16 @@ from typing import Any
 
 from taskpin import gitops
 from taskpin.errors import TaskPinError
-from taskpin.project import project_check_repo_id, project_locus
+from taskpin.paths import violating_paths
+from taskpin.project import project_check_repo_id, project_locus, project_paths
 from taskpin.schema import normalize_snapshot
 
 REPOSITORY_MISMATCH = "REPOSITORY_MISMATCH"
 WORKTREE_MISMATCH = "WORKTREE_MISMATCH"
 BASE_COMMIT_MISMATCH = "BASE_COMMIT_MISMATCH"
+PATH_OUTSIDE_ALLOWLIST = "PATH_OUTSIDE_ALLOWLIST"
 
 _LOCUS_KEYS = ("repo_id", "worktree_key", "base_commit")
-
-
-def _locus_from_snapshot(sealed: Mapping[str, Any]) -> dict[str, str]:
-    snap = normalize_snapshot(sealed)
-    return {key: str(snap[key]) for key in _LOCUS_KEYS}
 
 
 def _mismatch(cls: str, sealed: object, delivered: object) -> dict[str, object]:
@@ -33,12 +33,14 @@ def compare_locus(
     *,
     git_bin: str = "git",
 ) -> dict[str, Any]:
-    """Compare sealed snapshot locus to live Git state.
+    """Compare sealed snapshot locus and changed paths to live Git state.
 
-    Short-circuits after ``REPOSITORY_MISMATCH``. Does not grade paths or
-    instruction bytes. Operational inability to prove raises ``TaskPinError``.
+    Short-circuits after ``REPOSITORY_MISMATCH``. Does not grade instruction
+    bytes. Operational inability to prove raises ``TaskPinError``.
     """
-    sealed_locus = _locus_from_snapshot(sealed)
+    snap = normalize_snapshot(sealed)
+    sealed_locus = {key: str(snap[key]) for key in _LOCUS_KEYS}
+    allowed = list(snap["allowed_paths"])
     root = Path(cwd) if cwd is not None else Path.cwd()
     delivered = project_locus(root, git_bin=git_bin)
     check_repo_id = project_check_repo_id(
@@ -65,6 +67,7 @@ def compare_locus(
             ],
             "sealed_locus": sealed_locus,
             "delivered_locus": delivered_for_compare,
+            "delivered_paths": [],
         }
 
     mismatches: list[dict[str, object]] = []
@@ -98,6 +101,16 @@ def compare_locus(
             f"merge-base --is-ancestor exited {ancestry}",
         )
 
+    inspected = gitops.inspect_repository(root, git_bin=git_bin)
+    toplevel = Path(str(inspected["toplevel"]))
+    delivered_paths = project_paths(
+        root,
+        sealed_locus["base_commit"],
+        git_bin=git_bin,
+    )
+    for path in violating_paths(delivered_paths, allowed, toplevel):
+        mismatches.append(_mismatch(PATH_OUTSIDE_ALLOWLIST, allowed, path))
+
     status = "MATCH" if not mismatches else "MISMATCH"
     return {
         "ok": True,
@@ -105,4 +118,5 @@ def compare_locus(
         "mismatches": mismatches,
         "sealed_locus": sealed_locus,
         "delivered_locus": delivered_for_compare,
+        "delivered_paths": delivered_paths,
     }

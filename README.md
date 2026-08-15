@@ -4,7 +4,9 @@ Deterministic integrity primitive for the git locus an operator explicitly seale
 
 **T1** is the closed data layer: six-field snapshot, salt-grain canonicalization, and approval `record_digest`.
 
-**T2** adds Git locus projection for `repo_id`, `worktree_key`, and base ancestry. There is no path projection, instruction checking, CLI, or host integration yet.
+**T2** adds Git locus projection for `repo_id`, `worktree_key`, and base ancestry.
+
+**T3** adds changed-path projection and `PATH_OUTSIDE_ALLOWLIST`. There is no instruction checking, CLI, or host integration yet.
 
 ## Guarantee (when later `check` exists)
 
@@ -63,9 +65,11 @@ python -m pytest -q
 
 `project_snapshot(cwd)` / `project_locus(cwd)` observe the current work tree.
 
-`compare_locus(sealed, cwd)` compares sealed `repo_id` / `worktree_key` / ancestry.
+`compare_locus(sealed, cwd)` compares sealed `repo_id` / `worktree_key` / ancestry / changed paths.
 
 CHECK `repo_id` is recomputed from the **sealed** `base_commit`, not delivered HEAD. Shallow clones, grafts, and bare repos fail closed. Replace refs are disabled during identity reads. `merge-base --is-ancestor` exit 128 is `CANNOT_PROVE_ANCESTRY`, not a mismatch.
+
+Delivered paths are the sorted union of committed-since-base, staged, unstaged tracked, and untracked-not-ignored paths. Renames contribute both sides. `allowed_paths` is a literal prefix set; `src/auth` does not match `src/auth_backup`. A symlink whose resolved target leaves the repository is `PATH_OUTSIDE_ALLOWLIST`. Inability to project paths is `CANNOT_PROJECT_PATHS` / `UNCANONICAL_PATH`, not MATCH.
 
 ## Windows
 

@@ -1,4 +1,4 @@
-"""Project Git locus fields. No path containment. No instruction scrape."""
+"""Project Git locus and delivered path set. No instruction scrape."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from taskpin import gitops
+from taskpin.paths import canonicalize_git_path
 from taskpin.schema import snapshot
 
 
@@ -44,6 +45,24 @@ def project_check_repo_id(
     if not gitops.commit_exists(root, sealed_base_commit, git_bin=git_bin):
         return None
     return gitops.roots_of(root, sealed_base_commit, git_bin=git_bin)
+
+
+def project_paths(
+    cwd: Path | str | None,
+    sealed_base_commit: str,
+    *,
+    git_bin: str = "git",
+) -> list[str]:
+    """Sorted unique Git-visible delivered paths since the sealed base."""
+    root = _cwd(cwd)
+    inspected = gitops.inspect_repository(root, git_bin=git_bin)
+    toplevel = Path(str(inspected["toplevel"]))
+    raw_paths = gitops.changed_paths_since(
+        toplevel,
+        sealed_base_commit,
+        git_bin=git_bin,
+    )
+    return sorted({canonicalize_git_path(raw) for raw in raw_paths})
 
 
 def project_snapshot(

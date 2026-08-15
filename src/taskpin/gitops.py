@@ -93,13 +93,14 @@ def inspect_repository(cwd: Path, *, git_bin: str) -> dict[str, Path | bool]:
 
     common = _absolute_git_path(cwd, "--git-common-dir", git_bin=git_bin)
     gitdir = _absolute_git_path(cwd, "--git-dir", git_bin=git_bin)
+    toplevel = _absolute_git_path(cwd, "--show-toplevel", git_bin=git_bin)
     grafts = common / "info" / "grafts"
     if grafts.is_file():
         raise TaskPinError(
             "GRAFTS_PRESENT",
             "info/grafts rewrites ancestry and fails closed",
         )
-    return {"common_dir": common, "git_dir": gitdir}
+    return {"common_dir": common, "git_dir": gitdir, "toplevel": toplevel}
 
 
 def _absolute_git_path(cwd: Path, flag: str, *, git_bin: str) -> Path:
@@ -214,3 +215,148 @@ def _paths_equal(left: str, right: str) -> bool:
     if os.name == "nt":
         return left.casefold() == right.casefold()
     return left == right
+
+
+def _run_bytes(
+    cwd: Path,
+    args: list[str],
+    *,
+    git_bin: str,
+) -> subprocess.CompletedProcess[bytes]:
+    cmd = [git_bin, *_REPLACE_OFF, *args]
+    try:
+        return subprocess.run(
+            cmd,
+            cwd=cwd,
+            check=False,
+            capture_output=True,
+        )
+    except FileNotFoundError as exc:
+        raise TaskPinError(
+            "GIT_NOT_FOUND",
+            f"git executable not found: {git_bin}",
+        ) from exc
+    except OSError as exc:
+        raise TaskPinError("GIT_FAILURE", f"git could not be executed: {exc}") from exc
+
+
+def _decode_git_path(raw: bytes) -> str:
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise TaskPinError(
+            "UNCANONICAL_PATH",
+            "git emitted a path that is not valid UTF-8",
+        ) from exc
+
+
+def parse_name_status_z(data: bytes) -> list[str]:
+    """Expand ``diff -z --name-status`` records into raw Git path strings."""
+    if not data:
+        return []
+    tokens = data.split(b"\0")
+    if tokens and tokens[-1] == b"":
+        tokens.pop()
+    paths: list[str] = []
+    index = 0
+    while index < len(tokens):
+        status = tokens[index]
+        index += 1
+        if not status:
+            raise TaskPinError("CANNOT_PROJECT_PATHS", "empty name-status token")
+        kind = chr(status[0])
+        if kind in {"R", "C"}:
+            if index + 1 >= len(tokens):
+                raise TaskPinError(
+                    "CANNOT_PROJECT_PATHS",
+                    "rename/copy status is missing old or new path",
+                )
+            paths.append(_decode_git_path(tokens[index]))
+            paths.append(_decode_git_path(tokens[index + 1]))
+            index += 2
+        else:
+            if index >= len(tokens):
+                raise TaskPinError(
+                    "CANNOT_PROJECT_PATHS",
+                    "name-status record is missing a path",
+                )
+            paths.append(_decode_git_path(tokens[index]))
+            index += 1
+    return paths
+
+
+def parse_ls_files_z(data: bytes) -> list[str]:
+    if not data:
+        return []
+    tokens = data.split(b"\0")
+    if tokens and tokens[-1] == b"":
+        tokens.pop()
+    return [_decode_git_path(token) for token in tokens if token]
+
+
+def _require_path_listing(
+    proc: subprocess.CompletedProcess[bytes],
+    *,
+    what: str,
+) -> bytes:
+    if proc.returncode != 0:
+        err = (proc.stderr or proc.stdout or b"").decode("utf-8", errors="replace")
+        raise TaskPinError(
+            "CANNOT_PROJECT_PATHS",
+            f"{what} failed ({proc.returncode}): {err.strip()}",
+        )
+    return proc.stdout
+
+
+def name_status_paths(
+    cwd: Path,
+    extra: list[str],
+    *,
+    git_bin: str,
+) -> list[str]:
+    """``git diff -z --name-status -M`` plus extra args, from ``cwd``."""
+    proc = _run_bytes(
+        cwd,
+        ["diff", "-z", "--name-status", "-M", *extra, "--"],
+        git_bin=git_bin,
+    )
+    payload = _require_path_listing(
+        proc,
+        what="git diff -z --name-status -M",
+    )
+    return parse_name_status_z(payload)
+
+
+def untracked_paths(cwd: Path, *, git_bin: str) -> list[str]:
+    proc = _run_bytes(
+        cwd,
+        ["ls-files", "-z", "--others", "--exclude-standard", "--"],
+        git_bin=git_bin,
+    )
+    payload = _require_path_listing(
+        proc,
+        what="git ls-files -z --others --exclude-standard",
+    )
+    return parse_ls_files_z(payload)
+
+
+def changed_paths_since(
+    cwd: Path,
+    base_commit: str,
+    *,
+    git_bin: str,
+) -> list[str]:
+    """Union of committed, staged, unstaged, and untracked-not-ignored paths."""
+    if not _HEX40.fullmatch(base_commit):
+        raise TaskPinError(
+            "INVALID_BASE_COMMIT",
+            "sealed base_commit must be a 40-character lowercase hex SHA",
+        )
+    collected: list[str] = []
+    collected.extend(
+        name_status_paths(cwd, [base_commit, "HEAD"], git_bin=git_bin)
+    )
+    collected.extend(name_status_paths(cwd, ["--cached"], git_bin=git_bin))
+    collected.extend(name_status_paths(cwd, [], git_bin=git_bin))
+    collected.extend(untracked_paths(cwd, git_bin=git_bin))
+    return collected

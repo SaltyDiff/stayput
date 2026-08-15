@@ -23,8 +23,15 @@ def init_repo(path: Path, *, branch: str = "main") -> Path:
     return path
 
 
+def write_file(path: Path, name: str, content: str) -> Path:
+    target = path / name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content, encoding="utf-8")
+    return target
+
+
 def commit_file(path: Path, name: str, content: str, message: str) -> str:
-    (path / name).write_text(content, encoding="utf-8")
+    write_file(path, name, content)
     git(path, "add", name)
     git(path, "commit", "-m", message)
     return git(path, "rev-parse", "HEAD").stdout.strip()

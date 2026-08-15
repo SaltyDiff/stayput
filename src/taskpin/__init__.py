@@ -2,7 +2,8 @@
 
 T1: closed six-field snapshot, salt-grain canonicalization, record_digest.
 T2: Git locus projection for repo_id, worktree_key, and base ancestry.
-No CLI, hooks, path projection, or instruction checking in this release.
+T3: changed-path projection and PATH_OUTSIDE_ALLOWLIST.
+No CLI, hooks, instruction checking, or host integration in this release.
 """
 
 from __future__ import annotations
@@ -20,12 +21,13 @@ from taskpin.canonicalize import (
 )
 from taskpin.compare import (
     BASE_COMMIT_MISMATCH,
+    PATH_OUTSIDE_ALLOWLIST,
     REPOSITORY_MISMATCH,
     WORKTREE_MISMATCH,
     compare_locus,
 )
 from taskpin.errors import TaskPinError
-from taskpin.project import project_locus, project_snapshot
+from taskpin.project import project_locus, project_paths, project_snapshot
 from taskpin.schema import (
     APPROVAL_SCHEMA_VERSION,
     DEFAULT_APPROVAL_PATH,
@@ -51,6 +53,7 @@ __all__ = [
     "CAPABILITY_ID",
     "CAPABILITY_VERSION",
     "DEFAULT_APPROVAL_PATH",
+    "PATH_OUTSIDE_ALLOWLIST",
     "PRODUCT_FAMILY",
     "REPOSITORY_MISMATCH",
     "SNAPSHOT_SCHEMA_VERSION",
@@ -66,6 +69,7 @@ __all__ = [
     "parse_approval",
     "parse_snapshot",
     "project_locus",
+    "project_paths",
     "project_snapshot",
     "serialize_approval",
     "serialize_snapshot",
