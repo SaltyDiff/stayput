@@ -149,7 +149,7 @@ def test_unicode_byte_difference_is_drift(tmp_path: Path) -> None:
     repo = init_repo(tmp_path / "repo")
     commit_file(repo, "a.txt", "a\n", "first")
     nfc = "café".encode("utf-8")  # noqa: UP012 — encoding is the claim
-    nfd = "cafe\u0301".encode("utf-8")
+    nfd = "cafe\u0301".encode("utf-8")  # noqa: UP012, RUF100 — encoding is the claim
     assert nfc != nfd
     sealed = _seal_with_bytes(repo, nfc)
     result = compare_locus(sealed, repo, instruction_bytes=nfd)
