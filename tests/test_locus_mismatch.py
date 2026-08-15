@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from taskpin import (
+from stayput import (
     BASE_COMMIT_MISMATCH,
     REPOSITORY_MISMATCH,
     WORKTREE_MISMATCH,

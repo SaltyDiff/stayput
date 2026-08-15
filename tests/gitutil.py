@@ -17,8 +17,8 @@ def git(cwd: Path, *args: str, check: bool = True) -> subprocess.CompletedProces
 def init_repo(path: Path, *, branch: str = "main") -> Path:
     path.mkdir(parents=True)
     git(path, "init", "-b", branch)
-    git(path, "config", "user.email", "taskpin@example.test")
-    git(path, "config", "user.name", "taskpin")
+    git(path, "config", "user.email", "stayput@example.test")
+    git(path, "config", "user.name", "stayput")
     git(path, "config", "commit.gpgsign", "false")
     return path
 

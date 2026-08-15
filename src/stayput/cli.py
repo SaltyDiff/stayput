@@ -1,4 +1,4 @@
-"""Thin TaskPin CLI. All semantics stay in the library."""
+"""Thin StayPut CLI. All semantics stay in the library."""
 
 from __future__ import annotations
 
@@ -9,12 +9,12 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, NoReturn
 
-from taskpin.check import check
-from taskpin.errors import TaskPinError
-from taskpin.instruction import digest_instruction
-from taskpin.project import project_snapshot
-from taskpin.save import save
-from taskpin.schema import serialize_snapshot
+from stayput.check import check
+from stayput.errors import StayPutError
+from stayput.instruction import digest_instruction
+from stayput.project import project_snapshot
+from stayput.save import save
+from stayput.schema import serialize_snapshot
 
 EXIT_OK = 0
 EXIT_ERROR = 1
@@ -23,7 +23,7 @@ EXIT_MISMATCH = 2
 
 class _Parser(argparse.ArgumentParser):
     def error(self, message: str) -> NoReturn:
-        raise TaskPinError("CLI_USAGE", message)
+        raise StayPutError("CLI_USAGE", message)
 
 
 def _json_dump(payload: object) -> str:
@@ -39,7 +39,7 @@ def _read_instruction_file(path: Path) -> bytes:
     try:
         return path.read_bytes()
     except OSError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "INSTRUCTION_UNREADABLE",
             f"instruction file cannot be read: {path}",
         ) from exc
@@ -61,13 +61,13 @@ def _emit(text: str, *, stream: Any = sys.stdout) -> None:
     stream.write(text if text.endswith("\n") else f"{text}\n")
 
 
-def _error_payload(exc: TaskPinError) -> dict[str, object]:
+def _error_payload(exc: StayPutError) -> dict[str, object]:
     details = dict(exc.details)
     details.setdefault("message", exc.message)
     return {"ok": False, "error": exc.code, "details": details}
 
 
-def _render_error(exc: TaskPinError, *, json_mode: bool) -> int:
+def _render_error(exc: StayPutError, *, json_mode: bool) -> int:
     if json_mode:
         _emit(_json_dump(_error_payload(exc)))
     else:
@@ -135,7 +135,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = _Parser(prog="taskpin")
+    parser = _Parser(prog="stayput")
     sub = parser.add_subparsers(dest="command", required=True)
 
     project = sub.add_parser("project", help="project the current six-field snapshot")
@@ -169,5 +169,5 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         parsed = _build_parser().parse_args(args_list)
         return int(parsed.func(parsed))
-    except TaskPinError as exc:
+    except StayPutError as exc:
         return _render_error(exc, json_mode=json_mode)

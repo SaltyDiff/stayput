@@ -1,4 +1,4 @@
-from taskpin.gitops import parse_git_version
+from stayput.gitops import parse_git_version
 
 
 def test_parse_git_version() -> None:

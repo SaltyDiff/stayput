@@ -6,12 +6,12 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from taskpin import gitops
-from taskpin.errors import TaskPinError
-from taskpin.instruction import digest_instruction
-from taskpin.paths import violating_paths
-from taskpin.project import project_check_repo_id, project_locus, project_paths
-from taskpin.schema import normalize_snapshot
+from stayput import gitops
+from stayput.errors import StayPutError
+from stayput.instruction import digest_instruction
+from stayput.paths import violating_paths
+from stayput.project import project_check_repo_id, project_locus, project_paths
+from stayput.schema import normalize_snapshot
 
 REPOSITORY_MISMATCH = "REPOSITORY_MISMATCH"
 WORKTREE_MISMATCH = "WORKTREE_MISMATCH"
@@ -38,7 +38,7 @@ def compare_locus(
 
     Short-circuits after ``REPOSITORY_MISMATCH``. A sealed instruction digest
     with omitted bytes raises ``INSTRUCTION_REQUIRED`` after Git/path axes
-    are collected. Operational inability to prove raises ``TaskPinError``.
+    are collected. Operational inability to prove raises ``StayPutError``.
     """
     snap = normalize_snapshot(sealed)
     sealed_locus = {key: str(snap[key]) for key in _LOCUS_KEYS}
@@ -98,7 +98,7 @@ def compare_locus(
             )
         )
     else:
-        raise TaskPinError(
+        raise StayPutError(
             "CANNOT_PROVE_ANCESTRY",
             f"merge-base --is-ancestor exited {ancestry}",
         )
@@ -117,7 +117,7 @@ def compare_locus(
     sealed_instruction = snap["instruction_digest"]
     if sealed_instruction is not None:
         if instruction_bytes is None:
-            raise TaskPinError(
+            raise StayPutError(
                 "INSTRUCTION_REQUIRED",
                 "sealed instruction_digest requires explicit instruction bytes",
                 details={
@@ -126,7 +126,7 @@ def compare_locus(
                 },
             )
         if type(instruction_bytes) is not bytes:
-            raise TaskPinError(
+            raise StayPutError(
                 "INVALID_INSTRUCTION",
                 "instruction_bytes must be bytes when supplied",
                 details={
@@ -136,8 +136,8 @@ def compare_locus(
             )
         try:
             delivered_digest = digest_instruction(instruction_bytes)
-        except TaskPinError as exc:
-            raise TaskPinError(
+        except StayPutError as exc:
+            raise StayPutError(
                 exc.code,
                 exc.message,
                 details={

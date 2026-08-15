@@ -9,7 +9,7 @@ import os
 from collections.abc import Sequence
 from pathlib import Path
 
-from taskpin.errors import TaskPinError
+from stayput.errors import StayPutError
 
 
 def canonicalize_git_path(raw: str) -> str:
@@ -19,23 +19,23 @@ def canonicalize_git_path(raw: str) -> str:
     Does not silently repair unrepresentable paths.
     """
     if not isinstance(raw, str) or raw == "":
-        raise TaskPinError("UNCANONICAL_PATH", "git path must be a non-empty string")
+        raise StayPutError("UNCANONICAL_PATH", "git path must be a non-empty string")
     if "\x00" in raw:
-        raise TaskPinError("UNCANONICAL_PATH", "git path contains a NUL")
+        raise StayPutError("UNCANONICAL_PATH", "git path contains a NUL")
     if raw.startswith("/") or (len(raw) >= 2 and raw[1] == ":"):
-        raise TaskPinError("UNCANONICAL_PATH", "git path must be repository-relative")
+        raise StayPutError("UNCANONICAL_PATH", "git path must be repository-relative")
     if "\\" in raw or "//" in raw:
-        raise TaskPinError(
+        raise StayPutError(
             "UNCANONICAL_PATH",
             "git path must be POSIX without backslash or empty segments",
         )
     text = raw.removeprefix("./")
     text = text.rstrip("/")
     if text == "" or text == ".":
-        raise TaskPinError("UNCANONICAL_PATH", "git path collapsed to empty or '.'")
+        raise StayPutError("UNCANONICAL_PATH", "git path collapsed to empty or '.'")
     segments = text.split("/")
     if any(seg in {"", ".", ".."} for seg in segments):
-        raise TaskPinError(
+        raise StayPutError(
             "UNCANONICAL_PATH",
             "git path must not contain '.', '..', or empty segments",
         )
@@ -74,7 +74,7 @@ def path_escapes_repository(toplevel: Path, rel: str) -> bool:
     try:
         top = toplevel.resolve(strict=True)
     except OSError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "WORKTREE_UNRESOLVABLE",
             f"cannot realpath repository toplevel: {toplevel}",
         ) from exc
@@ -86,7 +86,7 @@ def path_escapes_repository(toplevel: Path, rel: str) -> bool:
         try:
             present = current.is_symlink() or current.exists()
         except OSError as exc:
-            raise TaskPinError(
+            raise StayPutError(
                 "UNCANONICAL_PATH",
                 f"cannot stat delivered path {rel!r}",
             ) from exc
@@ -96,7 +96,7 @@ def path_escapes_repository(toplevel: Path, rel: str) -> bool:
             try:
                 resolved = Path(os.path.realpath(current))
             except OSError as exc:
-                raise TaskPinError(
+                raise StayPutError(
                     "UNCANONICAL_PATH",
                     f"cannot realpath delivered path {rel!r}",
                 ) from exc

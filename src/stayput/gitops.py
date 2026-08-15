@@ -7,7 +7,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from taskpin.errors import TaskPinError
+from stayput.errors import StayPutError
 
 MIN_GIT_VERSION = (2, 31)
 _HEX40 = re.compile(r"^[0-9a-f]{40}$")
@@ -42,23 +42,23 @@ def _run(
             text=True,
         )
     except FileNotFoundError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "GIT_NOT_FOUND",
             f"git executable not found: {git_bin}",
         ) from exc
     except OSError as exc:
-        raise TaskPinError("GIT_FAILURE", f"git could not be executed: {exc}") from exc
+        raise StayPutError("GIT_FAILURE", f"git could not be executed: {exc}") from exc
 
 
 def require_git(cwd: Path, *, git_bin: str) -> tuple[int, int]:
     proc = _run(cwd, ["--version"], git_bin=git_bin, replace_off=False)
     if proc.returncode != 0:
-        raise TaskPinError("GIT_FAILURE", "git --version failed")
+        raise StayPutError("GIT_FAILURE", "git --version failed")
     version = parse_git_version(proc.stdout or "")
     if version is None:
-        raise TaskPinError("GIT_FAILURE", "could not parse git --version")
+        raise StayPutError("GIT_FAILURE", "could not parse git --version")
     if version < MIN_GIT_VERSION:
-        raise TaskPinError(
+        raise StayPutError(
             "GIT_TOO_OLD",
             f"git {version[0]}.{version[1]} is unsupported; require >= 2.31",
         )
@@ -69,8 +69,8 @@ def _truthy(proc: subprocess.CompletedProcess[str], *, code: str, what: str) -> 
     if proc.returncode != 0:
         err = (proc.stderr or proc.stdout or "").strip()
         if "not a git repository" in err.lower():
-            raise TaskPinError("NOT_A_REPOSITORY", f"{what}: not a git repository")
-        raise TaskPinError(code, f"{what} failed")
+            raise StayPutError("NOT_A_REPOSITORY", f"{what}: not a git repository")
+        raise StayPutError(code, f"{what} failed")
     return proc.stdout.strip() == "true"
 
 
@@ -78,25 +78,25 @@ def inspect_repository(cwd: Path, *, git_bin: str) -> dict[str, Path | bool]:
     """Fail-closed repository preconditions. Returns resolved git-dir and common-dir."""
     require_git(cwd, git_bin=git_bin)
     if not cwd.is_dir():
-        raise TaskPinError("NOT_A_REPOSITORY", f"cwd is not a directory: {cwd}")
+        raise StayPutError("NOT_A_REPOSITORY", f"cwd is not a directory: {cwd}")
 
     inside = _run(cwd, ["rev-parse", "--is-inside-work-tree"], git_bin=git_bin)
     bare = _run(cwd, ["rev-parse", "--is-bare-repository"], git_bin=git_bin)
     if bare.returncode == 0 and bare.stdout.strip() == "true":
-        raise TaskPinError("BARE_REPOSITORY", "bare repositories are out of V0")
+        raise StayPutError("BARE_REPOSITORY", "bare repositories are out of V0")
     if inside.returncode != 0 or inside.stdout.strip() != "true":
-        raise TaskPinError("NOT_A_REPOSITORY", "cwd is not a git work tree")
+        raise StayPutError("NOT_A_REPOSITORY", "cwd is not a git work tree")
 
     shallow = _run(cwd, ["rev-parse", "--is-shallow-repository"], git_bin=git_bin)
     if _truthy(shallow, code="GIT_FAILURE", what="rev-parse --is-shallow-repository"):
-        raise TaskPinError("SHALLOW_REPOSITORY", "shallow repositories fail closed")
+        raise StayPutError("SHALLOW_REPOSITORY", "shallow repositories fail closed")
 
     common = _absolute_git_path(cwd, "--git-common-dir", git_bin=git_bin)
     gitdir = _absolute_git_path(cwd, "--git-dir", git_bin=git_bin)
     toplevel = _absolute_git_path(cwd, "--show-toplevel", git_bin=git_bin)
     grafts = common / "info" / "grafts"
     if grafts.is_file():
-        raise TaskPinError(
+        raise StayPutError(
             "GRAFTS_PRESENT",
             "info/grafts rewrites ancestry and fails closed",
         )
@@ -112,18 +112,18 @@ def _absolute_git_path(cwd: Path, flag: str, *, git_bin: str) -> Path:
     if proc.returncode != 0:
         err = (proc.stderr or proc.stdout or "").strip()
         if "unknown option" in err.lower() or "path-format" in err.lower():
-            raise TaskPinError(
+            raise StayPutError(
                 "GIT_TOO_OLD",
                 "git does not support --path-format=absolute",
             )
-        raise TaskPinError("GIT_FAILURE", f"rev-parse {flag} failed")
+        raise StayPutError("GIT_FAILURE", f"rev-parse {flag} failed")
     raw = proc.stdout.strip()
     if not raw:
-        raise TaskPinError("GIT_FAILURE", f"rev-parse {flag} returned empty")
+        raise StayPutError("GIT_FAILURE", f"rev-parse {flag} returned empty")
     try:
         return Path(raw).resolve(strict=True)
     except OSError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "WORKTREE_UNRESOLVABLE",
             f"cannot realpath {flag}: {raw}",
         ) from exc
@@ -132,16 +132,16 @@ def _absolute_git_path(cwd: Path, flag: str, *, git_bin: str) -> Path:
 def read_head(cwd: Path, *, git_bin: str) -> str:
     proc = _run(cwd, ["rev-parse", "HEAD"], git_bin=git_bin)
     if proc.returncode != 0:
-        raise TaskPinError("GIT_FAILURE", "rev-parse HEAD failed")
+        raise StayPutError("GIT_FAILURE", "rev-parse HEAD failed")
     sha = proc.stdout.strip().lower()
     if not _HEX40.fullmatch(sha):
-        raise TaskPinError("GIT_FAILURE", "HEAD is not a 40-hex commit")
+        raise StayPutError("GIT_FAILURE", "HEAD is not a 40-hex commit")
     return sha
 
 
 def commit_exists(cwd: Path, sha: str, *, git_bin: str) -> bool:
     if not _HEX40.fullmatch(sha):
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_BASE_COMMIT",
             "commit identity must be a 40-character lowercase hex SHA",
         )
@@ -151,34 +151,34 @@ def commit_exists(cwd: Path, sha: str, *, git_bin: str) -> bool:
     err = (proc.stderr or proc.stdout or "").strip().lower()
     if proc.returncode == 1 or "not a valid object" in err or "does not exist" in err:
         return False
-    raise TaskPinError("GIT_INCOMPLETE", f"cat-file -e {sha} failed unexpectedly")
+    raise StayPutError("GIT_INCOMPLETE", f"cat-file -e {sha} failed unexpectedly")
 
 
 def roots_of(cwd: Path, commit: str, *, git_bin: str) -> str:
     if not _HEX40.fullmatch(commit):
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_BASE_COMMIT",
             "commit identity must be a 40-character lowercase hex SHA",
         )
     proc = _run(cwd, ["rev-list", "--max-parents=0", commit], git_bin=git_bin)
     if proc.returncode != 0:
-        raise TaskPinError(
+        raise StayPutError(
             "GIT_INCOMPLETE",
             f"rev-list --max-parents=0 {commit} failed",
         )
     lines = [line.strip().lower() for line in proc.stdout.splitlines() if line.strip()]
     if not lines:
-        raise TaskPinError("GIT_INCOMPLETE", "rev-list returned no roots")
+        raise StayPutError("GIT_INCOMPLETE", "rev-list returned no roots")
     for line in lines:
         if not _HEX40.fullmatch(line):
-            raise TaskPinError("GIT_INCOMPLETE", "rev-list returned a non-40-hex root")
+            raise StayPutError("GIT_INCOMPLETE", "rev-list returned a non-40-hex root")
     return ",".join(sorted(set(lines)))
 
 
 def merge_base_is_ancestor(cwd: Path, ancestor: str, *, git_bin: str) -> int:
     """Return the raw merge-base --is-ancestor exit code (0, 1, or other)."""
     if not _HEX40.fullmatch(ancestor):
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_BASE_COMMIT",
             "sealed base_commit must be a 40-character lowercase hex SHA",
         )
@@ -199,7 +199,7 @@ def worktree_key(git_dir: Path, common_dir: Path) -> str:
     if rel == ".":
         return ""
     if rel == ".." or rel.startswith("../"):
-        raise TaskPinError(
+        raise StayPutError(
             "WORKTREE_UNRESOLVABLE",
             "git-dir is not inside common-dir",
         )
@@ -232,19 +232,19 @@ def _run_bytes(
             capture_output=True,
         )
     except FileNotFoundError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "GIT_NOT_FOUND",
             f"git executable not found: {git_bin}",
         ) from exc
     except OSError as exc:
-        raise TaskPinError("GIT_FAILURE", f"git could not be executed: {exc}") from exc
+        raise StayPutError("GIT_FAILURE", f"git could not be executed: {exc}") from exc
 
 
 def _decode_git_path(raw: bytes) -> str:
     try:
         return raw.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "UNCANONICAL_PATH",
             "git emitted a path that is not valid UTF-8",
         ) from exc
@@ -263,11 +263,11 @@ def parse_name_status_z(data: bytes) -> list[str]:
         status = tokens[index]
         index += 1
         if not status:
-            raise TaskPinError("CANNOT_PROJECT_PATHS", "empty name-status token")
+            raise StayPutError("CANNOT_PROJECT_PATHS", "empty name-status token")
         kind = chr(status[0])
         if kind in {"R", "C"}:
             if index + 1 >= len(tokens):
-                raise TaskPinError(
+                raise StayPutError(
                     "CANNOT_PROJECT_PATHS",
                     "rename/copy status is missing old or new path",
                 )
@@ -276,7 +276,7 @@ def parse_name_status_z(data: bytes) -> list[str]:
             index += 2
         else:
             if index >= len(tokens):
-                raise TaskPinError(
+                raise StayPutError(
                     "CANNOT_PROJECT_PATHS",
                     "name-status record is missing a path",
                 )
@@ -301,7 +301,7 @@ def _require_path_listing(
 ) -> bytes:
     if proc.returncode != 0:
         err = (proc.stderr or proc.stdout or b"").decode("utf-8", errors="replace")
-        raise TaskPinError(
+        raise StayPutError(
             "CANNOT_PROJECT_PATHS",
             f"{what} failed ({proc.returncode}): {err.strip()}",
         )
@@ -348,7 +348,7 @@ def changed_paths_since(
 ) -> list[str]:
     """Union of committed, staged, unstaged, and untracked-not-ignored paths."""
     if not _HEX40.fullmatch(base_commit):
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_BASE_COMMIT",
             "sealed base_commit must be a 40-character lowercase hex SHA",
         )

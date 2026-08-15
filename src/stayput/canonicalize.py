@@ -9,8 +9,8 @@ from typing import Any
 from foundation_bytes_digest import digest_bytes
 from foundation_json_canonicalize import canonicalize_json
 
-from taskpin.errors import TaskPinError
-from taskpin.schema import (
+from stayput.errors import StayPutError
+from stayput.schema import (
     APPROVAL_FIELDS,
     APPROVAL_SCHEMA_VERSION,
     normalize_snapshot,
@@ -32,13 +32,13 @@ def canonical_snapshot_bytes(raw: object) -> bytes:
     )
     if not result.get("ok"):
         failure = result.get("failure") or {}
-        raise TaskPinError(
+        raise StayPutError(
             "CANONICALIZE_FAILED",
             str(failure.get("message") or "canonicalize_json failed"),
         )
     canonical = result.get("canonical")
     if type(canonical) is not bytes:
-        raise TaskPinError("CANONICALIZE_FAILED", "canonicalize_json returned no bytes")
+        raise StayPutError("CANONICALIZE_FAILED", "canonicalize_json returned no bytes")
     return canonical
 
 
@@ -53,7 +53,7 @@ def digest_snapshot(raw: object) -> str:
     )
     if not result.get("ok") or not isinstance(result.get("digest"), str):
         failure = result.get("failure") or {}
-        raise TaskPinError(
+        raise StayPutError(
             "CANONICALIZE_FAILED",
             str(failure.get("message") or "digest_bytes failed"),
         )
@@ -61,7 +61,7 @@ def digest_snapshot(raw: object) -> str:
 
 
 def build_approval(raw_snapshot: object) -> dict[str, Any]:
-    """Wrap a snapshot with ``taskpin.approval.v0.1`` and ``record_digest``."""
+    """Wrap a snapshot with ``stayput.approval.v0.1`` and ``record_digest``."""
     snapshot = normalize_snapshot(raw_snapshot)
     return {
         "schema_version": APPROVAL_SCHEMA_VERSION,
@@ -72,25 +72,25 @@ def build_approval(raw_snapshot: object) -> dict[str, Any]:
 
 def normalize_approval(raw: object) -> dict[str, Any]:
     if not isinstance(raw, Mapping):
-        raise TaskPinError("INVALID_APPROVAL", "approval must be an object")
+        raise StayPutError("INVALID_APPROVAL", "approval must be an object")
     try:
         keys = frozenset(raw.keys())
     except TypeError as exc:
-        raise TaskPinError("INVALID_APPROVAL", "approval keys must be strings") from exc
+        raise StayPutError("INVALID_APPROVAL", "approval keys must be strings") from exc
     extra = sorted(str(k) for k in keys if k not in APPROVAL_FIELDS)
     if extra:
-        raise TaskPinError(
+        raise StayPutError(
             "UNKNOWN_FIELD",
             f"unknown approval fields: {', '.join(extra)}",
         )
     missing = [k for k in APPROVAL_FIELDS if k not in keys]
     if missing:
-        raise TaskPinError(
+        raise StayPutError(
             "MISSING_FIELD",
             f"missing required approval fields: {', '.join(missing)}",
         )
     if raw["schema_version"] != APPROVAL_SCHEMA_VERSION:
-        raise TaskPinError(
+        raise StayPutError(
             "UNSUPPORTED_SCHEMA",
             f"approval schema_version must be {APPROVAL_SCHEMA_VERSION}",
         )
@@ -98,7 +98,7 @@ def normalize_approval(raw: object) -> dict[str, Any]:
     if not isinstance(digest, str) or len(digest) != 64 or any(
         ch not in "0123456789abcdef" for ch in digest
     ):
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_APPROVAL",
             "record_digest must be 64 lowercase hex characters",
         )
@@ -113,13 +113,13 @@ def normalize_approval(raw: object) -> dict[str, Any]:
 def verify_approval(raw: object) -> dict[str, Any]:
     """Recompute ``record_digest`` over the canonical snapshot.
 
-    Returns ``{"ok": True, "approval": ...}`` or raises ``TaskPinError``.
+    Returns ``{"ok": True, "approval": ...}`` or raises ``StayPutError``.
     A digest mismatch is ``DIGEST_MISMATCH`` (not MATCH/MISMATCH locus classes).
     """
     approval = normalize_approval(raw)
     expected = digest_snapshot(approval["snapshot"])
     if expected != approval["record_digest"]:
-        raise TaskPinError(
+        raise StayPutError(
             "DIGEST_MISMATCH",
             "record_digest does not match the canonical snapshot",
         )
@@ -145,7 +145,7 @@ def parse_approval(text: str) -> dict[str, Any]:
     try:
         loaded = json.loads(text)
     except json.JSONDecodeError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_APPROVAL",
             "approval JSON is not parseable",
         ) from exc

@@ -1,6 +1,6 @@
 # Documentation example — not a custom GitHub Action product.
-# TaskPin remains an ordinary CLI. Copy into a consumer workflow.
-name: taskpin-check
+# StayPut remains an ordinary CLI. Copy into a consumer workflow.
+name: stayput-check
 on:
   pull_request:
   push:
@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install TaskPin
-        run: pip install taskpin
+      - name: Install StayPut
+        run: pip install stayput
       - name: CHECK sealed approval
-        run: taskpin check --json
+        run: stayput check --json

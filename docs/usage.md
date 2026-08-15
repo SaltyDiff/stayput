@@ -1,8 +1,8 @@
-# TaskPin usage
+# StayPut usage
 
 ## Checks
 
-`taskpin check` compares the delivered Git locus to a sealed approval:
+`stayput check` compares the delivered Git locus to a sealed approval:
 
 1. repository lineage
 2. worktree identity
@@ -19,9 +19,9 @@ verification.
 ## Save, then work, then check
 
 ```bash
-taskpin save --allowed-path src --allowed-path tests
+stayput save --allowed-path src --allowed-path tests
 # agent works
-taskpin check --json
+stayput check --json
 ```
 
 Save is always explicit. Check never writes.
@@ -33,8 +33,8 @@ Literal prefixes. `.` allows any in-repo Git-visible path. Not a sandbox.
 ## Instruction file
 
 ```bash
-taskpin save --instruction-file PLAN.md --allowed-path src
-taskpin check --instruction-file PLAN.md --json
+stayput save --instruction-file PLAN.md --allowed-path src
+stayput check --instruction-file PLAN.md --json
 ```
 
 Exact bytes. Capture ≠ approve.
@@ -45,7 +45,7 @@ Exact bytes. Capture ≠ approve.
 
 ## Hosts
 
-Copy the matching example. Do not import a host SDK into TaskPin.
+Copy the matching example. Do not import a host SDK into StayPut.
 
 - Claude Code: `examples/claude-code/`
 - Cursor: `examples/cursor/`

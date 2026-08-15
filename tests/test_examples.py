@@ -39,7 +39,7 @@ def _cli_env() -> dict[str, str]:
 
 def _run_cli(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, "-m", "taskpin", *args],
+        [sys.executable, "-m", "stayput", *args],
         cwd=cwd,
         check=False,
         capture_output=True,
@@ -48,14 +48,14 @@ def _run_cli(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _taskpin_shim_dir(tmp_path: Path) -> Path:
+def _stayput_shim_dir(tmp_path: Path) -> Path:
     shim_dir = tmp_path / "bin"
     shim_dir.mkdir()
-    shim = shim_dir / "taskpin"
+    shim = shim_dir / "stayput"
     shim.write_text(
         "#!/bin/sh\n"
         f'export PYTHONPATH="{SRC}${{PYTHONPATH:+:$PYTHONPATH}}"\n'
-        f'exec "{sys.executable}" -m taskpin "$@"\n',
+        f'exec "{sys.executable}" -m stayput "$@"\n',
         encoding="utf-8",
     )
     shim.chmod(shim.stat().st_mode | stat.S_IEXEC)
@@ -103,7 +103,8 @@ def test_hook_json_parses_and_is_check_only() -> None:
 
 def test_check_sh_is_thin_check_wrapper() -> None:
     text = (EXAMPLES / "check.sh").read_text(encoding="utf-8")
-    assert "exec taskpin check --json" in text
+    assert "exec stayput check --json" in text
+    assert "stayput save" not in text
     assert "taskpin save" not in text
     assert "factory" not in text.lower()
     assert "saltmine" not in text.lower()
@@ -114,6 +115,7 @@ def test_machine_examples_never_invoke_save() -> None:
         if not path.is_file() or path.suffix not in MACHINE_SUFFIXES:
             continue
         text = path.read_text(encoding="utf-8")
+        assert "stayput save" not in text
         assert "taskpin save" not in text
         lower = text.lower()
         for needle in FORBIDDEN_IMPORTS:
@@ -134,7 +136,8 @@ def test_example_docs_do_not_depend_on_factory() -> None:
 def test_ci_yaml_is_ordinary_cli_with_full_history() -> None:
     text = (EXAMPLES / "ci" / "github-actions-check.yml").read_text(encoding="utf-8")
     assert "fetch-depth: 0" in text
-    assert "taskpin check --json" in text
+    assert "stayput check --json" in text
+    assert "stayput save" not in text
     assert "taskpin save" not in text
     assert "uses: saltydiff/" not in text.lower()
     assert "docker://" not in text
@@ -177,7 +180,7 @@ def test_documented_cli_commands_work(tmp_path: Path) -> None:
 
 
 def test_check_sh_honors_match_error_mismatch(tmp_path: Path) -> None:
-    shim_dir = _taskpin_shim_dir(tmp_path)
+    shim_dir = _stayput_shim_dir(tmp_path)
     repo = init_repo(tmp_path / "repo")
     commit_file(repo, "src/a.py", "a\n", "first")
 
@@ -206,8 +209,8 @@ def test_check_sh_honors_match_error_mismatch(tmp_path: Path) -> None:
     assert json.loads(mismatched.stdout)["status"] == "MISMATCH"
 
 
-def test_check_sh_uses_taskpin_cwd_and_discards_stdin(tmp_path: Path) -> None:
-    shim_dir = _taskpin_shim_dir(tmp_path)
+def test_check_sh_uses_stayput_cwd_and_discards_stdin(tmp_path: Path) -> None:
+    shim_dir = _stayput_shim_dir(tmp_path)
     repo = init_repo(tmp_path / "repo")
     commit_file(repo, "a.txt", "a\n", "first")
     saved = _run_cli("save", "--cwd", str(repo), "--json", cwd=repo)
@@ -218,7 +221,7 @@ def test_check_sh_uses_taskpin_cwd_and_discards_stdin(tmp_path: Path) -> None:
     proc = _run_check_sh(
         cwd=other,
         shim_dir=shim_dir,
-        extra_env={"TASKPIN_CWD": str(repo)},
+        extra_env={"STAYPUT_CWD": str(repo)},
         stdin='{"branch":"agent-reported","worktree":"/tmp/lie"}\n',
     )
     assert proc.returncode == 0
@@ -226,5 +229,5 @@ def test_check_sh_uses_taskpin_cwd_and_discards_stdin(tmp_path: Path) -> None:
 
 
 def test_examples_do_not_require_host_modules_in_core() -> None:
-    names = {path.stem for path in (SRC / "taskpin").glob("*.py")}
+    names = {path.stem for path in (SRC / "stayput").glob("*.py")}
     assert names.isdisjoint({"claude", "cursor", "openhands", "hooks", "ci"})

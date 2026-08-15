@@ -1,4 +1,4 @@
-"""Closed TaskPin V0 snapshot and approval-wrapper schemas.
+"""Closed StayPut V0 snapshot and approval-wrapper schemas.
 
 T1 validates and normalizes representation only. No Git derivation.
 """
@@ -10,11 +10,11 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from taskpin.errors import TaskPinError
+from stayput.errors import StayPutError
 
-SNAPSHOT_SCHEMA_VERSION = "taskpin.snapshot.v0.1"
-APPROVAL_SCHEMA_VERSION = "taskpin.approval.v0.1"
-DEFAULT_APPROVAL_PATH = ".taskpin/approval.json"
+SNAPSHOT_SCHEMA_VERSION = "stayput.snapshot.v0.1"
+APPROVAL_SCHEMA_VERSION = "stayput.approval.v0.1"
+DEFAULT_APPROVAL_PATH = ".stayput/approval.json"
 DEFAULT_ALLOWED_PATHS: tuple[str, ...] = (".",)
 
 SNAPSHOT_FIELDS: tuple[str, ...] = (
@@ -38,7 +38,7 @@ _GLOB_CHARS = frozenset("*?[{}")
 
 def _require_mapping(value: object, *, code: str, what: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
-        raise TaskPinError(code, f"{what} must be an object")
+        raise StayPutError(code, f"{what} must be an object")
     return value
 
 
@@ -46,27 +46,27 @@ def _reject_unknown(keys: object, allowed: tuple[str, ...], *, code: str) -> Non
     try:
         present = frozenset(keys)  # type: ignore[arg-type]
     except TypeError as exc:
-        raise TaskPinError(code, "object keys must be strings") from exc
+        raise StayPutError(code, "object keys must be strings") from exc
     extra = sorted(str(k) for k in present if k not in allowed)
     if extra:
-        raise TaskPinError(code, f"unknown fields: {', '.join(extra)}")
+        raise StayPutError(code, f"unknown fields: {', '.join(extra)}")
 
 
 def _require_keys(keys: object, required: tuple[str, ...], *, code: str) -> None:
     try:
         present = frozenset(keys)  # type: ignore[arg-type]
     except TypeError as exc:
-        raise TaskPinError(code, "object keys must be strings") from exc
+        raise StayPutError(code, "object keys must be strings") from exc
     missing = [k for k in required if k not in present]
     if missing:
-        raise TaskPinError(code, f"missing required fields: {', '.join(missing)}")
+        raise StayPutError(code, f"missing required fields: {', '.join(missing)}")
 
 
 def _normalize_instruction_digest(value: object) -> str | None:
     if value is None:
         return None
     if not isinstance(value, str) or not _HEX64.fullmatch(value):
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_INSTRUCTION_DIGEST",
             "instruction_digest must be null or 64 lowercase hex characters",
         )
@@ -75,19 +75,19 @@ def _normalize_instruction_digest(value: object) -> str | None:
 
 def _normalize_repo_id(value: object) -> str:
     if not isinstance(value, str) or not value:
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_REPO_ID",
             "repo_id must be a non-empty comma-separated list of 40-hex commits",
         )
     if " " in value or value.startswith(",") or value.endswith(",") or ",," in value:
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_REPO_ID",
             "repo_id must be comma-separated 40-hex SHAs with no spaces",
         )
     parts = value.split(",")
     for part in parts:
         if not _HEX40.fullmatch(part):
-            raise TaskPinError(
+            raise StayPutError(
                 "INVALID_REPO_ID",
                 "each repo_id component must be a 40-character lowercase hex SHA",
             )
@@ -97,25 +97,25 @@ def _normalize_repo_id(value: object) -> str:
 
 def _normalize_worktree_key(value: object) -> str:
     if not isinstance(value, str):
-        raise TaskPinError("INVALID_WORKTREE_KEY", "worktree_key must be a string")
+        raise StayPutError("INVALID_WORKTREE_KEY", "worktree_key must be a string")
     if value == "":
         return ""
     if "\\" in value or value.startswith("/") or "//" in value:
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_WORKTREE_KEY",
             "worktree_key must be a POSIX path relative to git common-dir",
         )
     if value.startswith("./"):
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_WORKTREE_KEY",
             "worktree_key must not start with ./",
         )
     stripped = value.rstrip("/")
     if not stripped:
-        raise TaskPinError("INVALID_WORKTREE_KEY", "worktree_key must not be '/'")
+        raise StayPutError("INVALID_WORKTREE_KEY", "worktree_key must not be '/'")
     segments = stripped.split("/")
     if any(seg in {"", ".", ".."} for seg in segments):
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_WORKTREE_KEY",
             "worktree_key must not contain empty, '.', or '..' segments",
         )
@@ -124,7 +124,7 @@ def _normalize_worktree_key(value: object) -> str:
 
 def _normalize_base_commit(value: object) -> str:
     if not isinstance(value, str) or not _HEX40.fullmatch(value):
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_BASE_COMMIT",
             "base_commit must be a 40-character lowercase hex SHA",
         )
@@ -133,22 +133,22 @@ def _normalize_base_commit(value: object) -> str:
 
 def _normalize_one_allowed_path(value: object) -> str:
     if not isinstance(value, str) or value == "":
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_ALLOWED_PATHS",
             "each allowed_paths entry must be a non-empty string",
         )
     if value.startswith("/") or "\\" in value or "//" in value:
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_ALLOWED_PATHS",
             "allowed_paths entries must be repository-relative POSIX prefixes",
         )
     if len(value) >= 2 and value[1] == ":":
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_ALLOWED_PATHS",
             "allowed_paths entries must not be absolute Windows paths",
         )
     if any(ch in value for ch in _GLOB_CHARS):
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_ALLOWED_PATHS",
             "allowed_paths does not accept glob or regex syntax",
         )
@@ -156,10 +156,10 @@ def _normalize_one_allowed_path(value: object) -> str:
         return "."
     stripped = value.rstrip("/")
     if stripped == "." or stripped == "":
-        raise TaskPinError("INVALID_ALLOWED_PATHS", "invalid allowed_paths entry")
+        raise StayPutError("INVALID_ALLOWED_PATHS", "invalid allowed_paths entry")
     segments = stripped.split("/")
     if any(seg in {"", ".", ".."} for seg in segments):
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_ALLOWED_PATHS",
             "allowed_paths entries must not contain '.', '..', or empty segments",
         )
@@ -168,9 +168,9 @@ def _normalize_one_allowed_path(value: object) -> str:
 
 def _normalize_allowed_paths(value: object) -> list[str]:
     if not isinstance(value, list):
-        raise TaskPinError("INVALID_ALLOWED_PATHS", "allowed_paths must be a list")
+        raise StayPutError("INVALID_ALLOWED_PATHS", "allowed_paths must be a list")
     if not value:
-        raise TaskPinError("INVALID_ALLOWED_PATHS", "allowed_paths must be non-empty")
+        raise StayPutError("INVALID_ALLOWED_PATHS", "allowed_paths must be non-empty")
     normalized = [_normalize_one_allowed_path(item) for item in value]
     return sorted(set(normalized))
 
@@ -186,7 +186,7 @@ def normalize_snapshot(raw: object) -> dict[str, Any]:
     _reject_unknown(mapping.keys(), SNAPSHOT_FIELDS, code="UNKNOWN_FIELD")
     _require_keys(mapping.keys(), SNAPSHOT_FIELDS, code="MISSING_FIELD")
     if mapping["schema_version"] != SNAPSHOT_SCHEMA_VERSION:
-        raise TaskPinError(
+        raise StayPutError(
             "UNSUPPORTED_SCHEMA",
             f"schema_version must be {SNAPSHOT_SCHEMA_VERSION}",
         )
@@ -235,7 +235,7 @@ def parse_snapshot(text: str) -> dict[str, Any]:
     try:
         loaded = json.loads(text)
     except json.JSONDecodeError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_SNAPSHOT",
             "snapshot JSON is not parseable",
         ) from exc

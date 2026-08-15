@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "taskpin"
+name = "stayput"
 version = "0.1.0"
 description = "Deterministic Git-locus integrity primitive: sealed six-field snapshot, canonicalization, and record digest"
 readme = "README.md"
@@ -14,7 +14,7 @@ authors = [
 ]
 keywords = [
   "saltydiff",
-  "taskpin",
+  "stayput",
   "deterministic",
   "git",
   "integrity",
@@ -34,7 +34,7 @@ dependencies = [
 ]
 
 [project.scripts]
-taskpin = "taskpin.cli:main"
+stayput = "stayput.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -44,15 +44,15 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/SaltyDiff/taskpin"
-Repository = "https://github.com/SaltyDiff/taskpin"
-Issues = "https://github.com/SaltyDiff/taskpin/issues"
+Homepage = "https://github.com/SaltyDiff/stayput"
+Repository = "https://github.com/SaltyDiff/stayput"
+Issues = "https://github.com/SaltyDiff/stayput/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-taskpin = ["py.typed"]
+stayput = ["py.typed"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
@@ -67,4 +67,4 @@ line-length = 88
 select = ["E", "F", "I", "UP", "B", "BLE", "C4", "DTZ", "PIE", "RUF", "SIM", "TRY", "FURB"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["taskpin"]
+known-first-party = ["stayput"]

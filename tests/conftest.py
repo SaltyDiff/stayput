@@ -12,7 +12,7 @@ INSTRUCTION = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
 
 def sample_snapshot(**overrides: object) -> dict[str, object]:
     payload: dict[str, object] = {
-        "schema_version": "taskpin.snapshot.v0.1",
+        "schema_version": "stayput.snapshot.v0.1",
         "instruction_digest": None,
         "repo_id": ROOT_A,
         "worktree_key": "",

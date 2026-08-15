@@ -5,13 +5,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from taskpin import DEFAULT_APPROVAL_PATH, digest_instruction
+from stayput import DEFAULT_APPROVAL_PATH, digest_instruction
 from tests.gitutil import commit_file, git, init_repo, write_file
 
 
 def run_cli(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, "-m", "taskpin", *args],
+        [sys.executable, "-m", "stayput", *args],
         cwd=cwd,
         check=False,
         capture_output=True,
@@ -25,7 +25,7 @@ def test_project_default_snapshot(tmp_path: Path) -> None:
     proc = run_cli("project", "--cwd", str(repo), cwd=repo)
     assert proc.returncode == 0
     snap = json.loads(proc.stdout)
-    assert snap["schema_version"] == "taskpin.snapshot.v0.1"
+    assert snap["schema_version"] == "stayput.snapshot.v0.1"
     assert snap["allowed_paths"] == ["."]
     assert snap["instruction_digest"] is None
     assert not (repo / DEFAULT_APPROVAL_PATH).exists()

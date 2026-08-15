@@ -6,9 +6,9 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from taskpin import gitops
-from taskpin.paths import canonicalize_git_path
-from taskpin.schema import snapshot
+from stayput import gitops
+from stayput.paths import canonicalize_git_path
+from stayput.schema import snapshot
 
 
 def _cwd(cwd: Path | str | None) -> Path:

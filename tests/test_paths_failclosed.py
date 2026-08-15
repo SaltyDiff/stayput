@@ -4,16 +4,16 @@ from pathlib import Path
 
 import pytest
 
-from taskpin import (
+from stayput import (
     PATH_OUTSIDE_ALLOWLIST,
     REPOSITORY_MISMATCH,
-    TaskPinError,
+    StayPutError,
     compare_locus,
     project_paths,
     project_snapshot,
 )
-from taskpin.gitops import parse_name_status_z
-from taskpin.paths import canonicalize_git_path
+from stayput.gitops import parse_name_status_z
+from stayput.paths import canonicalize_git_path
 from tests.gitutil import commit_file, git, init_repo, write_file
 
 
@@ -134,7 +134,7 @@ def test_git_path_listing_failure(tmp_path: Path) -> None:
         "done\n"
         'exec git "$@"\n',
     )
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         compare_locus(sealed, repo, git_bin=str(fake))
     assert exc.value.code == "CANNOT_PROJECT_PATHS"
 
@@ -147,22 +147,22 @@ def test_unrepresentable_path_never_silently_matches(
     commit_file(repo, "a.txt", "a\n", "first")
     sealed = project_snapshot(repo)
     monkeypatch.setattr(
-        "taskpin.gitops.changed_paths_since",
+        "stayput.gitops.changed_paths_since",
         lambda *args, **kwargs: ["../escape"],
     )
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         project_paths(repo, sealed["base_commit"])
     assert exc.value.code == "UNCANONICAL_PATH"
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         compare_locus(sealed, repo)
     assert exc.value.code == "UNCANONICAL_PATH"
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         canonicalize_git_path("../escape")
     assert exc.value.code == "UNCANONICAL_PATH"
 
 
 def test_malformed_name_status_fails_closed() -> None:
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         parse_name_status_z(b"R100\x00only-old\x00")
     assert exc.value.code == "CANNOT_PROJECT_PATHS"
 

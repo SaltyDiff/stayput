@@ -1,13 +1,15 @@
-# TaskPin
+# StayPut
+
+StayPut — make sure your coding agent did the work where you told it to.
 
 Deterministic integrity primitive for the Git locus an operator explicitly sealed.
 
-TaskPin is a host-neutral library and CLI. Hosts consume it with thin examples
+StayPut is a host-neutral library and CLI. Hosts consume it with thin examples
 under `examples/`. It is not an AI evaluator, sandbox, or workflow engine.
 
-## What TaskPin checks
+## What StayPut checks
 
-After an operator runs `taskpin save`, `taskpin check` verifies that the
+After an operator runs `stayput save`, `stayput check` verifies that the
 delivered Git locus matches the sealed approval:
 
 - same repository lineage (`repo_id` from the sealed base commit)
@@ -16,9 +18,9 @@ delivered Git locus matches the sealed approval:
 - every Git-visible delivered mutation is inside `allowed_paths`
 - if `instruction_digest` was sealed, supplied instruction bytes digest to that value
 
-## What TaskPin does not check
+## What StayPut does not check
 
-TaskPin does not determine correctness, test honesty, intent, safety,
+StayPut does not determine correctness, test honesty, intent, safety,
 unauthorized data, runtime behavior, or model-context accuracy.
 
 `allowed_paths` is not a sandbox. `instruction_digest=null` means instruction
@@ -29,21 +31,21 @@ integrity is **not verified**.
 `cwd` is not approval. There is no SessionStart save, TOFU, or silent overwrite.
 
 ```bash
-taskpin save --allowed-path src --allowed-path tests
+stayput save --allowed-path src --allowed-path tests
 ```
 
 Optional instruction binding — freeze bytes, then seal those exact bytes:
 
 ```bash
-taskpin save --instruction-file PLAN.md --allowed-path src
+stayput save --instruction-file PLAN.md --allowed-path src
 ```
 
-`--replace` is required to overwrite an existing `.taskpin/approval.json`.
+`--replace` is required to overwrite an existing `.stayput/approval.json`.
 
 ## Check
 
 ```bash
-taskpin check --json
+stayput check --json
 ```
 
 Check never writes. It verifies `record_digest` before trusting the snapshot,
@@ -63,7 +65,7 @@ repository is `PATH_OUTSIDE_ALLOWLIST`.
 normalization. A sealed digest with omitted bytes is `INSTRUCTION_REQUIRED`
 (operational error), not MATCH and not drift.
 
-Capture of prompt bytes is not approval. The human still runs `taskpin save`.
+Capture of prompt bytes is not approval. The human still runs `stayput save`.
 
 ## Exit codes
 
@@ -76,9 +78,9 @@ Capture of prompt bytes is not approval. The human still runs `taskpin save`.
 ## CLI
 
 ```bash
-taskpin project [--cwd PATH] [--instruction-file FILE] [--allowed-path PATH ...] [--json]
-taskpin save    [--cwd PATH] [--path FILE] [--instruction-file FILE] [--allowed-path PATH ...] [--replace] [--json]
-taskpin check   [--cwd PATH] [--path FILE] [--instruction-file FILE] [--json]
+stayput project [--cwd PATH] [--instruction-file FILE] [--allowed-path PATH ...] [--json]
+stayput save    [--cwd PATH] [--path FILE] [--instruction-file FILE] [--allowed-path PATH ...] [--replace] [--json]
+stayput check   [--cwd PATH] [--path FILE] [--instruction-file FILE] [--json]
 ```
 
 Requires Python `>=3.12,<3.13`, [`salt-grain==0.1.0`](https://pypi.org/project/salt-grain/), and Git.
@@ -102,19 +104,19 @@ CI needs full history (`fetch-depth: 0`). Shallow clones often fail closed.
 
 See [`docs/usage.md`](docs/usage.md) and [`examples/README.md`](examples/README.md).
 
-## Snapshot (`taskpin.snapshot.v0.1`)
+## Snapshot (`stayput.snapshot.v0.1`)
 
 | Field | Meaning |
 |---|---|
-| `schema_version` | `taskpin.snapshot.v0.1` |
+| `schema_version` | `stayput.snapshot.v0.1` |
 | `instruction_digest` | SHA-256 of explicit instruction bytes, or `null` |
 | `repo_id` | Sorted unique 40-hex roots of sealed-base ancestry |
 | `worktree_key` | `""` for the main worktree; otherwise a POSIX relative git-dir key |
 | `base_commit` | 40 lowercase hex |
 | `allowed_paths` | Literal repo-relative prefixes; default `["."]` |
 
-Approval wrapper `taskpin.approval.v0.1`: `schema_version`, `snapshot`,
-`record_digest`. Default path: `.taskpin/approval.json`.
+Approval wrapper `stayput.approval.v0.1`: `schema_version`, `snapshot`,
+`record_digest`. Default path: `.stayput/approval.json`.
 
 ## Tests
 

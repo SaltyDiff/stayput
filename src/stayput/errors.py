@@ -1,9 +1,9 @@
-"""Typed TaskPin failures. No host or Factory types."""
+"""Typed StayPut failures. No host or Factory types."""
 
 from __future__ import annotations
 
 
-class TaskPinError(ValueError):
+class StayPutError(ValueError):
     """Closed operational failure. ``code`` is stable; ``message`` is diagnostic."""
 
     def __init__(

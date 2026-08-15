@@ -3,8 +3,8 @@
 # Prefer an explicit project directory; otherwise use the current working directory.
 set -eu
 
-if [ -n "${TASKPIN_CWD:-}" ]; then
-  cd "${TASKPIN_CWD}"
+if [ -n "${STAYPUT_CWD:-}" ]; then
+  cd "${STAYPUT_CWD}"
 elif [ -n "${CLAUDE_PROJECT_DIR:-}" ]; then
   cd "${CLAUDE_PROJECT_DIR}"
 elif [ -n "${OPENHANDS_PROJECT_DIR:-}" ]; then
@@ -16,4 +16,4 @@ if [ ! -t 0 ]; then
   cat >/dev/null
 fi
 
-exec taskpin check --json "$@"
+exec stayput check --json "$@"

@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from taskpin import (
+from stayput import (
     INSTRUCTION_DRIFT,
     PATH_OUTSIDE_ALLOWLIST,
-    TaskPinError,
+    StayPutError,
     compare_locus,
     digest_instruction,
     digest_instruction_text,
@@ -53,13 +53,13 @@ def test_binary_and_utf8_are_deterministic() -> None:
 
 def test_text_helper_is_explicit_utf8() -> None:
     assert digest_instruction_text("abc") == digest_instruction(b"abc")
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         digest_instruction_text(b"abc")  # type: ignore[arg-type]
     assert exc.value.code == "INVALID_INSTRUCTION"
 
 
 def test_non_bytes_input_rejected() -> None:
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         digest_instruction("abc")  # type: ignore[arg-type]
     assert exc.value.code == "INVALID_INSTRUCTION"
 
@@ -68,8 +68,8 @@ def test_digest_failure_is_not_match(monkeypatch: pytest.MonkeyPatch) -> None:
     def boom(_payload: object) -> dict[str, object]:
         return {"ok": False, "failure": {"message": "forced"}}
 
-    monkeypatch.setattr("taskpin.instruction.digest_bytes", boom)
-    with pytest.raises(TaskPinError) as exc:
+    monkeypatch.setattr("stayput.instruction.digest_bytes", boom)
+    with pytest.raises(StayPutError) as exc:
         digest_instruction(b"abc")
     assert exc.value.code == "DIGEST_FAILED"
 
@@ -168,7 +168,7 @@ def test_sealed_digest_without_bytes_is_required(tmp_path: Path) -> None:
     repo = init_repo(tmp_path / "repo")
     commit_file(repo, "a.txt", "a\n", "first")
     sealed = _seal_with_bytes(repo, b"need me")
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         compare_locus(sealed, repo)
     assert exc.value.code == "INSTRUCTION_REQUIRED"
     assert INSTRUCTION_DRIFT not in [
@@ -183,7 +183,7 @@ def test_instruction_required_does_not_suppress_path_mismatches(
     commit_file(repo, "src/auth/a.py", "a\n", "first")
     sealed = _seal_with_bytes(repo, b"scope", allowed=["src/auth"])
     write_file(repo, "docs/out.md", "x\n")
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         compare_locus(sealed, repo)
     assert exc.value.code == "INSTRUCTION_REQUIRED"
     classes = [m["class"] for m in exc.value.details["mismatches"]]
@@ -213,8 +213,8 @@ def test_digest_failure_does_not_become_match(
     def boom(_payload: object) -> dict[str, object]:
         return {"ok": False, "failure": {"message": "forced"}}
 
-    monkeypatch.setattr("taskpin.instruction.digest_bytes", boom)
-    with pytest.raises(TaskPinError) as exc:
+    monkeypatch.setattr("stayput.instruction.digest_bytes", boom)
+    with pytest.raises(StayPutError) as exc:
         compare_locus(sealed, repo, instruction_bytes=b"abc")
     assert exc.value.code == "DIGEST_FAILED"
     assert exc.value.details["mismatches"] == []
@@ -225,7 +225,7 @@ def test_malformed_sealed_digest_still_rejected_by_schema(tmp_path: Path) -> Non
     commit_file(repo, "a.txt", "a\n", "first")
     sealed = project_snapshot(repo)
     sealed = {**sealed, "instruction_digest": "not-a-digest"}
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         compare_locus(sealed, repo, instruction_bytes=b"abc")
     assert exc.value.code == "INVALID_INSTRUCTION_DIGEST"
 

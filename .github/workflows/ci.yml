@@ -33,13 +33,13 @@ jobs:
 
       - name: Fresh-wheel install smoke
         run: |
-          python -m venv /tmp/taskpin-fresh
-          /tmp/taskpin-fresh/bin/python -m pip install -U pip
-          wheel="$(ls dist/taskpin-*.whl | head -n1)"
-          /tmp/taskpin-fresh/bin/python -m pip install "$wheel"
-          /tmp/taskpin-fresh/bin/python - <<'PY'
+          python -m venv /tmp/stayput-fresh
+          /tmp/stayput-fresh/bin/python -m pip install -U pip
+          wheel="$(ls dist/stayput-*.whl | head -n1)"
+          /tmp/stayput-fresh/bin/python -m pip install "$wheel"
+          /tmp/stayput-fresh/bin/python - <<'PY'
           import importlib.metadata
-          from taskpin import (
+          from stayput import (
               CAPABILITY_VERSION,
               __version__,
               digest_snapshot,
@@ -49,7 +49,7 @@ jobs:
           )
 
           assert __version__ == "0.1.0"
-          assert importlib.metadata.version("taskpin") == "0.1.0"
+          assert importlib.metadata.version("stayput") == "0.1.0"
           assert importlib.metadata.version("salt-grain") == "0.1.0"
           assert CAPABILITY_VERSION == "0.1.0"
 

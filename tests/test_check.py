@@ -5,14 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from taskpin import (
+from stayput import (
     BASE_COMMIT_MISMATCH,
     DEFAULT_APPROVAL_PATH,
     INSTRUCTION_DRIFT,
     PATH_OUTSIDE_ALLOWLIST,
     REPOSITORY_MISMATCH,
     WORKTREE_MISMATCH,
-    TaskPinError,
+    StayPutError,
     check,
     save,
 )
@@ -119,7 +119,7 @@ def test_check_instruction_drift(tmp_path: Path) -> None:
 def test_check_missing_approval(tmp_path: Path) -> None:
     repo = init_repo(tmp_path / "repo")
     commit_file(repo, "a.txt", "a\n", "first")
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         check(repo)
     assert exc.value.code == "APPROVAL_MISSING"
     assert not (repo / DEFAULT_APPROVAL_PATH).exists()
@@ -131,7 +131,7 @@ def test_check_malformed_json(tmp_path: Path) -> None:
     target = repo / DEFAULT_APPROVAL_PATH
     target.parent.mkdir()
     target.write_text("{not json", encoding="utf-8")
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         check(repo)
     assert exc.value.code == "INVALID_APPROVAL"
 
@@ -142,9 +142,9 @@ def test_check_wrong_wrapper_schema(tmp_path: Path) -> None:
     save(repo)
     target = repo / DEFAULT_APPROVAL_PATH
     payload = json.loads(target.read_text(encoding="utf-8"))
-    payload["schema_version"] = "taskpin.approval.v9.9"
+    payload["schema_version"] = "stayput.approval.v9.9"
     target.write_text(json.dumps(payload), encoding="utf-8")
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         check(repo)
     assert exc.value.code == "UNSUPPORTED_SCHEMA"
 
@@ -157,7 +157,7 @@ def test_check_unknown_wrapper_field(tmp_path: Path) -> None:
     payload = json.loads(target.read_text(encoding="utf-8"))
     payload["extra"] = True
     target.write_text(json.dumps(payload), encoding="utf-8")
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         check(repo)
     assert exc.value.code == "UNKNOWN_FIELD"
 
@@ -170,7 +170,7 @@ def test_check_malformed_snapshot(tmp_path: Path) -> None:
     payload = json.loads(target.read_text(encoding="utf-8"))
     payload["snapshot"]["base_commit"] = "not-a-sha"
     target.write_text(json.dumps(payload), encoding="utf-8")
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         check(repo)
     assert exc.value.code == "INVALID_BASE_COMMIT"
 
@@ -183,7 +183,7 @@ def test_check_altered_snapshot_stale_digest(tmp_path: Path) -> None:
     payload = json.loads(target.read_text(encoding="utf-8"))
     payload["snapshot"]["allowed_paths"] = ["src/auth"]
     target.write_text(json.dumps(payload), encoding="utf-8")
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         check(repo)
     assert exc.value.code == "DIGEST_MISMATCH"
 
@@ -196,7 +196,7 @@ def test_check_altered_record_digest(tmp_path: Path) -> None:
     payload = json.loads(target.read_text(encoding="utf-8"))
     payload["record_digest"] = "0" * 64
     target.write_text(json.dumps(payload), encoding="utf-8")
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         check(repo)
     assert exc.value.code == "DIGEST_MISMATCH"
 
@@ -205,7 +205,7 @@ def test_check_sealed_instruction_without_bytes(tmp_path: Path) -> None:
     repo = init_repo(tmp_path / "repo")
     commit_file(repo, "a.txt", "a\n", "first")
     save(repo, instruction_bytes=b"need me")
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         check(repo)
     assert exc.value.code == "INSTRUCTION_REQUIRED"
 
@@ -216,7 +216,7 @@ def test_check_unreadable_approval(tmp_path: Path) -> None:
     target = repo / DEFAULT_APPROVAL_PATH
     target.parent.mkdir()
     target.mkdir()
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         check(repo)
     assert exc.value.code == "APPROVAL_UNREADABLE"
 
@@ -231,7 +231,7 @@ def test_check_git_failure_fails_closed(tmp_path: Path) -> None:
         'if [ "$1" = "--version" ]; then echo "git version 2.30.0"; exit 0; fi\n'
         "exit 128\n",
     )
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         check(repo, git_bin=str(fake))
     assert exc.value.code == "GIT_TOO_OLD"
 
@@ -239,20 +239,20 @@ def test_check_git_failure_fails_closed(tmp_path: Path) -> None:
 def test_check_does_not_create_or_repair(tmp_path: Path) -> None:
     repo = init_repo(tmp_path / "repo")
     commit_file(repo, "a.txt", "a\n", "first")
-    with pytest.raises(TaskPinError):
+    with pytest.raises(StayPutError):
         check(repo)
-    assert not (repo / ".taskpin").exists()
+    assert not (repo / ".stayput").exists()
 
 
 def test_check_excludes_only_the_approval_artifact(tmp_path: Path) -> None:
     repo = init_repo(tmp_path / "repo")
     commit_file(repo, "src/auth/a.py", "a\n", "first")
     save(repo, allowed_paths=["src/auth"])
-    write_file(repo, ".taskpin/notes.txt", "not the seal\n")
+    write_file(repo, ".stayput/notes.txt", "not the seal\n")
     result = check(repo)
     assert result["status"] == "MISMATCH"
-    assert ".taskpin/approval.json" not in result["delivered_paths"]
-    assert ".taskpin/notes.txt" in result["delivered_paths"]
+    assert ".stayput/approval.json" not in result["delivered_paths"]
+    assert ".stayput/notes.txt" in result["delivered_paths"]
     assert PATH_OUTSIDE_ALLOWLIST in [m["class"] for m in result["mismatches"]]
 
 

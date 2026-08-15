@@ -1,4 +1,4 @@
-"""TaskPin — SaltyDiff git-locus integrity primitive.
+"""StayPut — SaltyDiff git-locus integrity primitive.
 
 Host-neutral library and CLI. Thin host examples live under examples/.
 """
@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
 
-from taskpin.canonicalize import (
+from stayput.canonicalize import (
     build_approval,
     canonical_snapshot_bytes,
     digest_snapshot,
@@ -16,8 +16,8 @@ from taskpin.canonicalize import (
     serialize_approval,
     verify_approval,
 )
-from taskpin.check import check
-from taskpin.compare import (
+from stayput.check import check
+from stayput.compare import (
     BASE_COMMIT_MISMATCH,
     INSTRUCTION_DRIFT,
     PATH_OUTSIDE_ALLOWLIST,
@@ -25,11 +25,11 @@ from taskpin.compare import (
     WORKTREE_MISMATCH,
     compare_locus,
 )
-from taskpin.errors import TaskPinError
-from taskpin.instruction import digest_instruction, digest_instruction_text
-from taskpin.project import project_locus, project_paths, project_snapshot
-from taskpin.save import save
-from taskpin.schema import (
+from stayput.errors import StayPutError
+from stayput.instruction import digest_instruction, digest_instruction_text
+from stayput.project import project_locus, project_paths, project_snapshot
+from stayput.save import save
+from stayput.schema import (
     APPROVAL_SCHEMA_VERSION,
     DEFAULT_APPROVAL_PATH,
     SNAPSHOT_SCHEMA_VERSION,
@@ -40,11 +40,11 @@ from taskpin.schema import (
 )
 
 PRODUCT_FAMILY = "SaltyDiff"
-CAPABILITY_ID = "taskpin"
+CAPABILITY_ID = "stayput"
 CAPABILITY_VERSION = "0.1.0"
 
 try:
-    __version__ = version("taskpin")
+    __version__ = version("stayput")
 except PackageNotFoundError:  # pragma: no cover - editable/source tree fallback
     __version__ = CAPABILITY_VERSION
 
@@ -60,7 +60,7 @@ __all__ = [
     "REPOSITORY_MISMATCH",
     "SNAPSHOT_SCHEMA_VERSION",
     "WORKTREE_MISMATCH",
-    "TaskPinError",
+    "StayPutError",
     "__version__",
     "build_approval",
     "canonical_snapshot_bytes",

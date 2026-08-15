@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from taskpin.errors import TaskPinError
-from taskpin.paths import canonicalize_git_path, path_allowed, path_escapes_repository
+from stayput.errors import StayPutError
+from stayput.paths import canonicalize_git_path, path_allowed, path_escapes_repository
 
 
 def test_canonicalize_strips_trailing_slash_and_dot_slash() -> None:
@@ -13,7 +13,7 @@ def test_canonicalize_strips_trailing_slash_and_dot_slash() -> None:
 
 def test_canonicalize_rejects_traversal_and_absolute() -> None:
     for raw in ("", ".", "..", "../x", "src/../x", "/abs", "C:/win", "a\\b", "a//b"):
-        with pytest.raises(TaskPinError) as exc:
+        with pytest.raises(StayPutError) as exc:
             canonicalize_git_path(raw)
         assert exc.value.code == "UNCANONICAL_PATH"
 

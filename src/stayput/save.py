@@ -10,18 +10,18 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from taskpin.canonicalize import build_approval, serialize_approval
-from taskpin.errors import TaskPinError
-from taskpin.instruction import digest_instruction
-from taskpin.project import project_snapshot
-from taskpin.schema import DEFAULT_APPROVAL_PATH
+from stayput.canonicalize import build_approval, serialize_approval
+from stayput.errors import StayPutError
+from stayput.instruction import digest_instruction
+from stayput.project import project_snapshot
+from stayput.schema import DEFAULT_APPROVAL_PATH
 
 
 def resolve_approval_path(
     cwd: Path | str | None = None,
     path: Path | str | None = None,
 ) -> Path:
-    """Resolve the approval file path. Default is ``<cwd>/.taskpin/approval.json``."""
+    """Resolve the approval file path. Default is ``<cwd>/.stayput/approval.json``."""
     root = Path(cwd) if cwd is not None else Path.cwd()
     target = Path(path) if path is not None else Path(DEFAULT_APPROVAL_PATH)
     if not target.is_absolute():
@@ -34,7 +34,7 @@ def _write_atomic(path: Path, text: str) -> None:
     try:
         parent.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "APPROVAL_WRITE_FAILED",
             f"cannot create approval directory {parent}",
         ) from exc
@@ -50,7 +50,7 @@ def _write_atomic(path: Path, text: str) -> None:
         os.replace(tmp_path, path)
         tmp_path = None
     except OSError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "APPROVAL_WRITE_FAILED",
             f"cannot write approval artifact {path}",
         ) from exc
@@ -68,7 +68,7 @@ def save(
     replace: bool = False,
     git_bin: str = "git",
 ) -> dict[str, Any]:
-    """Seal the current Git locus into ``taskpin.approval.v0.1``.
+    """Seal the current Git locus into ``stayput.approval.v0.1``.
 
     ``replace`` must be True to overwrite an existing artifact. Default is
     fail-closed ``APPROVAL_ALREADY_EXISTS``.
@@ -76,7 +76,7 @@ def save(
     if instruction_bytes is None:
         instruction_digest = None
     elif type(instruction_bytes) is not bytes:
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_INSTRUCTION",
             "instruction_bytes must be bytes when supplied",
         )
@@ -92,7 +92,7 @@ def save(
     approval = build_approval(snapshot)
     target = resolve_approval_path(cwd, path)
     if target.exists() and not replace:
-        raise TaskPinError(
+        raise StayPutError(
             "APPROVAL_ALREADY_EXISTS",
             f"approval artifact already exists: {target}",
         )

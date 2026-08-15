@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from taskpin import (
-    TaskPinError,
+from stayput import (
+    StayPutError,
     build_approval,
     canonical_snapshot_bytes,
     digest_snapshot,
@@ -46,7 +46,7 @@ def test_input_field_order_does_not_change_canonical_result() -> None:
         "worktree_key": "",
         "repo_id": ordered["repo_id"],
         "instruction_digest": None,
-        "schema_version": "taskpin.snapshot.v0.1",
+        "schema_version": "stayput.snapshot.v0.1",
     }
     assert canonical_snapshot_bytes(ordered) == canonical_snapshot_bytes(shuffled)
     assert digest_snapshot(ordered) == digest_snapshot(shuffled)
@@ -110,7 +110,7 @@ def test_altered_snapshot_fails_record_digest_verification() -> None:
         **approval,
         "snapshot": {**approval["snapshot"], "worktree_key": "worktrees/other"},
     }
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         verify_approval(tampered)
     assert exc.value.code == "DIGEST_MISMATCH"
 
@@ -119,14 +119,14 @@ def test_altered_record_digest_fails_verification() -> None:
     approval = build_approval(sample_snapshot())
     other = "0" * 64
     assert other != approval["record_digest"]
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         verify_approval({**approval, "record_digest": other})
     assert exc.value.code == "DIGEST_MISMATCH"
 
 
 def test_unknown_approval_wrapper_fields_rejected() -> None:
     approval = build_approval(sample_snapshot())
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         verify_approval({**approval, "campaign_id": "nope"})
     assert exc.value.code == "UNKNOWN_FIELD"
 

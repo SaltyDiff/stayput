@@ -9,34 +9,34 @@ import json
 from pathlib import Path
 from typing import Any
 
-from taskpin import gitops
-from taskpin.canonicalize import verify_approval
-from taskpin.compare import compare_locus
-from taskpin.errors import TaskPinError
-from taskpin.paths import canonicalize_git_path
-from taskpin.save import resolve_approval_path
+from stayput import gitops
+from stayput.canonicalize import verify_approval
+from stayput.compare import compare_locus
+from stayput.errors import StayPutError
+from stayput.paths import canonicalize_git_path
+from stayput.save import resolve_approval_path
 
 
 def _read_approval_text(path: Path) -> str:
     if not path.exists():
-        raise TaskPinError(
+        raise StayPutError(
             "APPROVAL_MISSING",
             f"approval artifact is missing: {path}",
         )
     if not path.is_file():
-        raise TaskPinError(
+        raise StayPutError(
             "APPROVAL_UNREADABLE",
             f"approval path is not a file: {path}",
         )
     try:
         return path.read_text(encoding="utf-8")
     except UnicodeDecodeError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_APPROVAL",
             "approval artifact is not valid UTF-8",
         ) from exc
     except OSError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "APPROVAL_UNREADABLE",
             f"approval artifact cannot be read: {path}",
         ) from exc
@@ -52,14 +52,14 @@ def check(
     """Verify artifact integrity, then compare sealed vs delivered locus.
 
     ``record_digest`` is verified before the snapshot is trusted.
-    Integrity failures raise ``TaskPinError`` (ERROR), not MISMATCH.
+    Integrity failures raise ``StayPutError`` (ERROR), not MISMATCH.
     """
     target = resolve_approval_path(cwd, path)
     text = _read_approval_text(target)
     try:
         loaded = json.loads(text)
     except json.JSONDecodeError as exc:
-        raise TaskPinError(
+        raise StayPutError(
             "INVALID_APPROVAL",
             "approval JSON is not parseable",
         ) from exc
@@ -92,5 +92,5 @@ def _approval_relpath(
         return ()
     try:
         return (canonicalize_git_path(str(rel).replace("\\", "/")),)
-    except TaskPinError:
+    except StayPutError:
         return ()

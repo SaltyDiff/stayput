@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from taskpin import (
+from stayput import (
     DEFAULT_APPROVAL_PATH,
-    TaskPinError,
+    StayPutError,
     check,
     digest_instruction,
     save,
@@ -26,7 +26,7 @@ def test_save_creates_valid_approval(tmp_path: Path) -> None:
     assert target.is_file()
     loaded = json.loads(target.read_text(encoding="utf-8"))
     assert set(loaded) == {"schema_version", "snapshot", "record_digest"}
-    assert loaded["schema_version"] == "taskpin.approval.v0.1"
+    assert loaded["schema_version"] == "stayput.approval.v0.1"
     assert set(loaded["snapshot"]) == {
         "schema_version",
         "instruction_digest",
@@ -36,7 +36,7 @@ def test_save_creates_valid_approval(tmp_path: Path) -> None:
         "allowed_paths",
     }
     verify_approval(loaded)
-    leftover = list((repo / ".taskpin").glob(".approval-*.tmp"))
+    leftover = list((repo / ".stayput").glob(".approval-*.tmp"))
     assert leftover == []
 
 
@@ -72,7 +72,7 @@ def test_second_save_without_replace_fails(tmp_path: Path) -> None:
     repo = init_repo(tmp_path / "repo")
     commit_file(repo, "a.txt", "a\n", "first")
     first = save(repo)
-    with pytest.raises(TaskPinError) as exc:
+    with pytest.raises(StayPutError) as exc:
         save(repo)
     assert exc.value.code == "APPROVAL_ALREADY_EXISTS"
     assert json.loads((repo / DEFAULT_APPROVAL_PATH).read_text(encoding="utf-8"))[

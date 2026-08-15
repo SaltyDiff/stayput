@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from taskpin import compare_locus, project_locus, project_snapshot
+from stayput import compare_locus, project_locus, project_snapshot
 from tests.gitutil import commit_file, git, init_repo
 
 
