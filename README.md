@@ -2,7 +2,9 @@
 
 Deterministic integrity primitive for the git locus an operator explicitly sealed.
 
-**T1 (this release)** is the closed data layer only: six-field snapshot, salt-grain canonicalization, and approval `record_digest`. There is no Git projection, CLI, or host integration yet.
+**T1** is the closed data layer: six-field snapshot, salt-grain canonicalization, and approval `record_digest`.
+
+**T2** adds Git locus projection for `repo_id`, `worktree_key`, and base ancestry. There is no path projection, instruction checking, CLI, or host integration yet.
 
 ## Guarantee (when later `check` exists)
 
@@ -22,7 +24,7 @@ Exactly six fields:
 |---|---|
 | `schema_version` | `taskpin.snapshot.v0.1` |
 | `instruction_digest` | SHA-256 of explicit instruction bytes, or `null` |
-| `repo_id` | Sorted unique 40-hex roots of the sealed base (schema only in T1) |
+| `repo_id` | Sorted unique 40-hex roots of sealed-base ancestry (HEAD at save) |
 | `worktree_key` | `""` for the main worktree; otherwise a POSIX relative git-dir key |
 | `base_commit` | 40 lowercase hex |
 | `allowed_paths` | Literal repo-relative prefixes; default `["."]` |
@@ -57,9 +59,17 @@ Requires Python `>=3.12,<3.13`.
 python -m pytest -q
 ```
 
+## Git locus (T2)
+
+`project_snapshot(cwd)` / `project_locus(cwd)` observe the current work tree.
+
+`compare_locus(sealed, cwd)` compares sealed `repo_id` / `worktree_key` / ancestry.
+
+CHECK `repo_id` is recomputed from the **sealed** `base_commit`, not delivered HEAD. Shallow clones, grafts, and bare repos fail closed. Replace refs are disabled during identity reads. `merge-base --is-ancestor` exit 128 is `CANNOT_PROVE_ANCESTRY`, not a mismatch.
+
 ## Windows
 
-Git worktree / path-format behavior is **deferred** with honest documentation. T1 has no Git code. See `docs/windows.md`.
+The worktree algorithm specifies `--path-format=absolute`, `\\` → `/`, and Windows-only case-fold equality. Windows Git/worktree CI is still **deferred**. See `docs/windows.md`.
 
 ## What this repository is not
 

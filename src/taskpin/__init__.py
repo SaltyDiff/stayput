@@ -1,8 +1,8 @@
 """TaskPin — SaltyDiff git-locus integrity primitive.
 
-T1 public surface is the closed six-field snapshot, salt-grain
-canonicalization, and approval ``record_digest``. No Git, CLI, or host
-adapters in this release.
+T1: closed six-field snapshot, salt-grain canonicalization, record_digest.
+T2: Git locus projection for repo_id, worktree_key, and base ancestry.
+No CLI, hooks, path projection, or instruction checking in this release.
 """
 
 from __future__ import annotations
@@ -18,7 +18,14 @@ from taskpin.canonicalize import (
     serialize_approval,
     verify_approval,
 )
+from taskpin.compare import (
+    BASE_COMMIT_MISMATCH,
+    REPOSITORY_MISMATCH,
+    WORKTREE_MISMATCH,
+    compare_locus,
+)
 from taskpin.errors import TaskPinError
+from taskpin.project import project_locus, project_snapshot
 from taskpin.schema import (
     APPROVAL_SCHEMA_VERSION,
     DEFAULT_APPROVAL_PATH,
@@ -40,20 +47,26 @@ except PackageNotFoundError:  # pragma: no cover - editable/source tree fallback
 
 __all__ = [
     "APPROVAL_SCHEMA_VERSION",
+    "BASE_COMMIT_MISMATCH",
     "CAPABILITY_ID",
     "CAPABILITY_VERSION",
     "DEFAULT_APPROVAL_PATH",
     "PRODUCT_FAMILY",
+    "REPOSITORY_MISMATCH",
     "SNAPSHOT_SCHEMA_VERSION",
+    "WORKTREE_MISMATCH",
     "TaskPinError",
     "__version__",
     "build_approval",
     "canonical_snapshot_bytes",
+    "compare_locus",
     "digest_snapshot",
     "normalize_approval",
     "normalize_snapshot",
     "parse_approval",
     "parse_snapshot",
+    "project_locus",
+    "project_snapshot",
     "serialize_approval",
     "serialize_snapshot",
     "snapshot",

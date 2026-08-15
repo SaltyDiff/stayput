@@ -1,7 +1,10 @@
 # Windows
 
-T1 contains no Git or filesystem projection.
+T2 implements the worktree algorithm:
 
-Later Git locus work (T2+) may need `--path-format=absolute`, `\` → `/` normalization, and case-fold equality for main-worktree detection. That behavior is **not qualified** in T1 and is explicitly deferred until a Windows test row exists or a later release documents remaining uncertainty.
+- `git rev-parse --path-format=absolute`
+- `realpath` both git-dir and common-dir
+- `\\` → `/`, strip trailing slash
+- case-fold equality **only on Windows** when deciding main vs linked
 
-Do not assume Windows worktree identity is proven by this package version.
+There is still **no Windows CI row**. Do not treat Windows worktree identity as qualified until that exists.
