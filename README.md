@@ -10,7 +10,9 @@ Deterministic integrity primitive for the git locus an operator explicitly seale
 
 **T4** adds optional instruction-byte verification and `INSTRUCTION_DRIFT`.
 
-**T5** adds library `save` / `check` for `.taskpin/approval.json`. There is no CLI or host integration yet.
+**T5** adds library `save` / `check` for `.taskpin/approval.json`.
+
+**T6** adds a thin `taskpin` CLI. There are no hooks or host integrations yet.
 
 ## Guarantee (when later `check` exists)
 
@@ -58,6 +60,18 @@ pip install -e '.[dev]'
 ```
 
 Requires Python `>=3.12,<3.13`.
+
+## CLI
+
+```bash
+taskpin project [--cwd PATH] [--instruction-file FILE] [--allowed-path PATH ...] [--json]
+taskpin save    [--cwd PATH] [--path FILE] [--instruction-file FILE] [--allowed-path PATH ...] [--replace] [--json]
+taskpin check   [--cwd PATH] [--path FILE] [--instruction-file FILE] [--json]
+```
+
+Exit codes: `0` success/MATCH, `1` operational ERROR, `2` CHECK MISMATCH.
+
+`--instruction-file` is read as exact bytes. `--replace` is required to overwrite an existing approval. `project` never writes an approval.
 
 ## Tests
 
