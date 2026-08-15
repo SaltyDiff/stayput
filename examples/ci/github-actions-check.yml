@@ -1,0 +1,22 @@
+# Documentation example — not a custom GitHub Action product.
+# TaskPin remains an ordinary CLI. Copy into a consumer workflow.
+name: taskpin-check
+on:
+  pull_request:
+  push:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install TaskPin
+        run: pip install taskpin
+      - name: CHECK sealed approval
+        run: taskpin check --json

@@ -1,65 +1,77 @@
 # TaskPin
 
-Deterministic integrity primitive for the git locus an operator explicitly sealed.
+Deterministic integrity primitive for the Git locus an operator explicitly sealed.
 
-**T1** is the closed data layer: six-field snapshot, salt-grain canonicalization, and approval `record_digest`.
+TaskPin is a host-neutral library and CLI. Hosts consume it with thin examples
+under `examples/`. It is not an AI evaluator, sandbox, or workflow engine.
 
-**T2** adds Git locus projection for `repo_id`, `worktree_key`, and base ancestry.
+## What TaskPin checks
 
-**T3** adds changed-path projection and `PATH_OUTSIDE_ALLOWLIST`.
+After an operator runs `taskpin save`, `taskpin check` verifies that the
+delivered Git locus matches the sealed approval:
 
-**T4** adds optional instruction-byte verification and `INSTRUCTION_DRIFT`.
+- same repository lineage (`repo_id` from the sealed base commit)
+- same worktree (`worktree_key`)
+- sealed `base_commit` is an ancestor of `HEAD`
+- every Git-visible delivered mutation is inside `allowed_paths`
+- if `instruction_digest` was sealed, supplied instruction bytes digest to that value
 
-**T5** adds library `save` / `check` for `.taskpin/approval.json`.
+## What TaskPin does not check
 
-**T6** adds a thin `taskpin` CLI. There are no hooks or host integrations yet.
+TaskPin does not determine correctness, test honesty, intent, safety,
+unauthorized data, runtime behavior, or model-context accuracy.
 
-## Guarantee (when later `check` exists)
+`allowed_paths` is not a sandbox. `instruction_digest=null` means instruction
+integrity is **not verified**.
 
-The delivered Git locus matches the explicitly sealed TaskPin approval under the V0 projection.
+## Explicit save / approval
 
-T1 does not perform that check. It only makes the sealed snapshot and digest deterministic.
-
-## Non-guarantees
-
-TaskPin does not determine whether code is correct, tests passed honestly, intent was fulfilled, the environment was safe, or anything outside Git-visible delivered mutations. `allowed_paths` is not a sandbox. `instruction_digest=null` means instruction integrity is **not verified**.
-
-## Snapshot (`taskpin.snapshot.v0.1`)
-
-Exactly six fields:
-
-| Field | Meaning |
-|---|---|
-| `schema_version` | `taskpin.snapshot.v0.1` |
-| `instruction_digest` | SHA-256 of explicit instruction bytes, or `null` |
-| `repo_id` | Sorted unique 40-hex roots of sealed-base ancestry (HEAD at save) |
-| `worktree_key` | `""` for the main worktree; otherwise a POSIX relative git-dir key |
-| `base_commit` | 40 lowercase hex |
-| `allowed_paths` | Literal repo-relative prefixes; default `["."]` |
-
-`allowed_paths` is a **set**: canonical form is sorted and deduplicated. `["."]` means any mutation **inside the approved repository**, not unrestricted filesystem access.
-
-## Approval (`taskpin.approval.v0.1`)
-
-```json
-{
-  "schema_version": "taskpin.approval.v0.1",
-  "snapshot": { "...six fields..." },
-  "record_digest": "<sha256 of salt-grain canonical snapshot bytes>"
-}
-```
-
-Default future path: `.taskpin/approval.json`. T1 defines parse/verify only. No save/check CLI.
-
-`record_digest` is computed with public [`salt-grain`](https://pypi.org/project/salt-grain/) `0.1.0` (`canonicalize_json` + `digest_bytes`). No custom cryptography. Receipt bind is omitted in T1; digest verification is sufficient.
-
-## Install
+`cwd` is not approval. There is no SessionStart save, TOFU, or silent overwrite.
 
 ```bash
-pip install -e '.[dev]'
+taskpin save --allowed-path src --allowed-path tests
 ```
 
-Requires Python `>=3.12,<3.13`.
+Optional instruction binding — freeze bytes, then seal those exact bytes:
+
+```bash
+taskpin save --instruction-file PLAN.md --allowed-path src
+```
+
+`--replace` is required to overwrite an existing `.taskpin/approval.json`.
+
+## Check
+
+```bash
+taskpin check --json
+```
+
+Check never writes. It verifies `record_digest` before trusting the snapshot,
+then compares the delivered Git locus. Git is the authority — not agent-reported
+branch, worktree, or hook payload metadata.
+
+## `allowed_paths`
+
+Literal repo-relative prefixes. Default `["."]` means any Git-visible mutation
+**inside the approved repository**. `src/auth` does not match `src/auth_backup`.
+Globs and regex are not supported. A symlink whose resolved target leaves the
+repository is `PATH_OUTSIDE_ALLOWLIST`.
+
+## Optional instruction binding
+
+`--instruction-file` is `read_bytes()`. No whitespace, newline, or Unicode
+normalization. A sealed digest with omitted bytes is `INSTRUCTION_REQUIRED`
+(operational error), not MATCH and not drift.
+
+Capture of prompt bytes is not approval. The human still runs `taskpin save`.
+
+## Exit codes
+
+| Exit | Meaning |
+|---|---|
+| `0` | `project` / `save` success, or `check` MATCH |
+| `1` | operational ERROR (usage, missing approval, cannot prove) |
+| `2` | `check` MISMATCH |
 
 ## CLI
 
@@ -69,9 +81,40 @@ taskpin save    [--cwd PATH] [--path FILE] [--instruction-file FILE] [--allowed-
 taskpin check   [--cwd PATH] [--path FILE] [--instruction-file FILE] [--json]
 ```
 
-Exit codes: `0` success/MATCH, `1` operational ERROR, `2` CHECK MISMATCH.
+Requires Python `>=3.12,<3.13`, [`salt-grain==0.1.0`](https://pypi.org/project/salt-grain/), and Git.
 
-`--instruction-file` is read as exact bytes. `--replace` is required to overwrite an existing approval. `project` never writes an approval.
+```bash
+pip install -e '.[dev]'
+```
+
+## Host examples
+
+Same flow everywhere: operator `save` → agent work → hook/CI `check`.
+
+| Host | Example |
+|---|---|
+| Claude Code | [`examples/claude-code/`](examples/claude-code/) |
+| Cursor / Cursor Cloud | [`examples/cursor/`](examples/cursor/) |
+| OpenHands | [`examples/openhands/`](examples/openhands/) |
+| Ordinary CI | [`examples/ci/`](examples/ci/) |
+
+CI needs full history (`fetch-depth: 0`). Shallow clones often fail closed.
+
+See [`docs/usage.md`](docs/usage.md) and [`examples/README.md`](examples/README.md).
+
+## Snapshot (`taskpin.snapshot.v0.1`)
+
+| Field | Meaning |
+|---|---|
+| `schema_version` | `taskpin.snapshot.v0.1` |
+| `instruction_digest` | SHA-256 of explicit instruction bytes, or `null` |
+| `repo_id` | Sorted unique 40-hex roots of sealed-base ancestry |
+| `worktree_key` | `""` for the main worktree; otherwise a POSIX relative git-dir key |
+| `base_commit` | 40 lowercase hex |
+| `allowed_paths` | Literal repo-relative prefixes; default `["."]` |
+
+Approval wrapper `taskpin.approval.v0.1`: `schema_version`, `snapshot`,
+`record_digest`. Default path: `.taskpin/approval.json`.
 
 ## Tests
 
@@ -79,30 +122,6 @@ Exit codes: `0` success/MATCH, `1` operational ERROR, `2` CHECK MISMATCH.
 python -m pytest -q
 ```
 
-## Git locus (T2)
-
-`project_snapshot(cwd)` / `project_locus(cwd)` observe the current work tree.
-
-`compare_locus(sealed, cwd, instruction_bytes=...)` compares sealed `repo_id` / `worktree_key` / ancestry / changed paths / optional instruction bytes.
-
-`instruction_digest=null` means instruction integrity is **not verified**. A sealed digest with omitted bytes is `INSTRUCTION_REQUIRED`, not MATCH and not drift. Digests are exact salt-grain SHA-256 of the supplied bytes. No whitespace, newline, or Unicode normalization.
-
-CHECK `repo_id` is recomputed from the **sealed** `base_commit`, not delivered HEAD. Shallow clones, grafts, and bare repos fail closed. Replace refs are disabled during identity reads. `merge-base --is-ancestor` exit 128 is `CANNOT_PROVE_ANCESTRY`, not a mismatch.
-
-Delivered paths are the sorted union of committed-since-base, staged, unstaged tracked, and untracked-not-ignored paths. Renames contribute both sides. `allowed_paths` is a literal prefix set; `src/auth` does not match `src/auth_backup`. A symlink whose resolved target leaves the repository is `PATH_OUTSIDE_ALLOWLIST`. Inability to project paths is `CANNOT_PROJECT_PATHS` / `UNCANONICAL_PATH`, not MATCH.
-
-## Approval artifact (T5)
-
-`save(cwd, replace=False)` writes `taskpin.approval.v0.1` to `.taskpin/approval.json` under `cwd` unless `path` is supplied. An existing file fails with `APPROVAL_ALREADY_EXISTS` unless `replace=True`.
-
-`check(cwd)` reads that artifact, verifies `record_digest` before trusting the snapshot, then compares the delivered Git locus. Integrity failures are errors, not mismatches. Check never writes or repairs the file.
-
-`cwd` alone never implies approval. There is no SessionStart save, TOFU, or silent overwrite.
-
 ## Windows
 
-The worktree algorithm specifies `--path-format=absolute`, `\\` → `/`, and Windows-only case-fold equality. Windows Git/worktree CI is still **deferred**. See `docs/windows.md`.
-
-## What this repository is not
-
-Not a sandbox, policy engine, workflow engine, agent framework, hosted service, or Factory product. Core stays host-neutral.
+Windows Git/worktree CI is **deferred**. See [`docs/windows.md`](docs/windows.md).

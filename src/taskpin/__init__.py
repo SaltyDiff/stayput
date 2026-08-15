@@ -1,12 +1,6 @@
 """TaskPin — SaltyDiff git-locus integrity primitive.
 
-T1: closed six-field snapshot, salt-grain canonicalization, record_digest.
-T2: Git locus projection for repo_id, worktree_key, and base ancestry.
-T3: changed-path projection and PATH_OUTSIDE_ALLOWLIST.
-T4: optional instruction-byte verification and INSTRUCTION_DRIFT.
-T5: library save/check of the portable approval artifact.
-T6: thin CLI (project / save / check).
-No hooks or host integration in this release.
+Host-neutral library and CLI. Thin host examples live under examples/.
 """
 
 from __future__ import annotations

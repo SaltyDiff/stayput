@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "stop": [
+      {
+        "matcher": "*",
+        "command": "examples/check.sh"
+      }
+    ]
+  }
+}

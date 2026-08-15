@@ -2,6 +2,9 @@
 
 ## 0.1.0
 
+- Thin host/CI examples (Claude Code, Cursor, OpenHands, ordinary CI)
+- User documentation for save / check / `allowed_paths` / exit codes
+- No schema or core behavior changes
 - T6: thin `taskpin` CLI (`project`, `save`, `check`); exit 0/1/2
 - T5: library `save` / `check` for `.taskpin/approval.json`
 - T5: explicit `replace=True` required to overwrite; `record_digest` verified before compare
@@ -15,4 +18,4 @@
 - T1: `taskpin.approval.v0.1` wrapper with `record_digest`
 - T1: salt-grain canonicalization and digest verification
 - T1: golden vectors for canonical bytes and digests
-- No hooks or host adapters
+- Host adapters stay outside `src/taskpin`

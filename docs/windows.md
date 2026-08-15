@@ -1,6 +1,6 @@
 # Windows
 
-T2 implements the worktree algorithm:
+The worktree algorithm is:
 
 - `git rev-parse --path-format=absolute`
 - `realpath` both git-dir and common-dir
