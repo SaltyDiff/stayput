@@ -6,7 +6,9 @@ Deterministic integrity primitive for the git locus an operator explicitly seale
 
 **T2** adds Git locus projection for `repo_id`, `worktree_key`, and base ancestry.
 
-**T3** adds changed-path projection and `PATH_OUTSIDE_ALLOWLIST`. There is no instruction checking, CLI, or host integration yet.
+**T3** adds changed-path projection and `PATH_OUTSIDE_ALLOWLIST`.
+
+**T4** adds optional instruction-byte verification and `INSTRUCTION_DRIFT`. There is no save/check CLI or host integration yet.
 
 ## Guarantee (when later `check` exists)
 
@@ -65,7 +67,9 @@ python -m pytest -q
 
 `project_snapshot(cwd)` / `project_locus(cwd)` observe the current work tree.
 
-`compare_locus(sealed, cwd)` compares sealed `repo_id` / `worktree_key` / ancestry / changed paths.
+`compare_locus(sealed, cwd, instruction_bytes=...)` compares sealed `repo_id` / `worktree_key` / ancestry / changed paths / optional instruction bytes.
+
+`instruction_digest=null` means instruction integrity is **not verified**. A sealed digest with omitted bytes is `INSTRUCTION_REQUIRED`, not MATCH and not drift. Digests are exact salt-grain SHA-256 of the supplied bytes. No whitespace, newline, or Unicode normalization.
 
 CHECK `repo_id` is recomputed from the **sealed** `base_commit`, not delivered HEAD. Shallow clones, grafts, and bare repos fail closed. Replace refs are disabled during identity reads. `merge-base --is-ancestor` exit 128 is `CANNOT_PROVE_ANCESTRY`, not a mismatch.
 

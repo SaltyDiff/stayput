@@ -1,7 +1,4 @@
-"""Compare sealed vs delivered Git locus and changed paths.
-
-Instruction verification is T4+.
-"""
+"""Compare sealed vs delivered Git locus, changed paths, and instruction bytes."""
 
 from __future__ import annotations
 
@@ -11,6 +8,7 @@ from typing import Any
 
 from taskpin import gitops
 from taskpin.errors import TaskPinError
+from taskpin.instruction import digest_instruction
 from taskpin.paths import violating_paths
 from taskpin.project import project_check_repo_id, project_locus, project_paths
 from taskpin.schema import normalize_snapshot
@@ -19,6 +17,7 @@ REPOSITORY_MISMATCH = "REPOSITORY_MISMATCH"
 WORKTREE_MISMATCH = "WORKTREE_MISMATCH"
 BASE_COMMIT_MISMATCH = "BASE_COMMIT_MISMATCH"
 PATH_OUTSIDE_ALLOWLIST = "PATH_OUTSIDE_ALLOWLIST"
+INSTRUCTION_DRIFT = "INSTRUCTION_DRIFT"
 
 _LOCUS_KEYS = ("repo_id", "worktree_key", "base_commit")
 
@@ -31,12 +30,14 @@ def compare_locus(
     sealed: Mapping[str, Any],
     cwd: Path | str | None = None,
     *,
+    instruction_bytes: bytes | None = None,
     git_bin: str = "git",
 ) -> dict[str, Any]:
-    """Compare sealed snapshot locus and changed paths to live Git state.
+    """Compare sealed snapshot locus, paths, and optional instruction bytes.
 
-    Short-circuits after ``REPOSITORY_MISMATCH``. Does not grade instruction
-    bytes. Operational inability to prove raises ``TaskPinError``.
+    Short-circuits after ``REPOSITORY_MISMATCH``. A sealed instruction digest
+    with omitted bytes raises ``INSTRUCTION_REQUIRED`` after Git/path axes
+    are collected. Operational inability to prove raises ``TaskPinError``.
     """
     snap = normalize_snapshot(sealed)
     sealed_locus = {key: str(snap[key]) for key in _LOCUS_KEYS}
@@ -110,6 +111,47 @@ def compare_locus(
     )
     for path in violating_paths(delivered_paths, allowed, toplevel):
         mismatches.append(_mismatch(PATH_OUTSIDE_ALLOWLIST, allowed, path))
+
+    sealed_instruction = snap["instruction_digest"]
+    if sealed_instruction is not None:
+        if instruction_bytes is None:
+            raise TaskPinError(
+                "INSTRUCTION_REQUIRED",
+                "sealed instruction_digest requires explicit instruction bytes",
+                details={
+                    "mismatches": mismatches,
+                    "delivered_paths": delivered_paths,
+                },
+            )
+        if type(instruction_bytes) is not bytes:
+            raise TaskPinError(
+                "INVALID_INSTRUCTION",
+                "instruction_bytes must be bytes when supplied",
+                details={
+                    "mismatches": mismatches,
+                    "delivered_paths": delivered_paths,
+                },
+            )
+        try:
+            delivered_digest = digest_instruction(instruction_bytes)
+        except TaskPinError as exc:
+            raise TaskPinError(
+                exc.code,
+                exc.message,
+                details={
+                    "mismatches": mismatches,
+                    "delivered_paths": delivered_paths,
+                    **exc.details,
+                },
+            ) from exc
+        if delivered_digest != sealed_instruction:
+            mismatches.append(
+                _mismatch(
+                    INSTRUCTION_DRIFT,
+                    sealed_instruction,
+                    delivered_digest,
+                )
+            )
 
     status = "MATCH" if not mismatches else "MISMATCH"
     return {

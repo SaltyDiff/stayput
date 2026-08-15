@@ -3,7 +3,8 @@
 T1: closed six-field snapshot, salt-grain canonicalization, record_digest.
 T2: Git locus projection for repo_id, worktree_key, and base ancestry.
 T3: changed-path projection and PATH_OUTSIDE_ALLOWLIST.
-No CLI, hooks, instruction checking, or host integration in this release.
+T4: optional instruction-byte verification and INSTRUCTION_DRIFT.
+No CLI, hooks, save/check workflow, or host integration in this release.
 """
 
 from __future__ import annotations
@@ -21,12 +22,14 @@ from taskpin.canonicalize import (
 )
 from taskpin.compare import (
     BASE_COMMIT_MISMATCH,
+    INSTRUCTION_DRIFT,
     PATH_OUTSIDE_ALLOWLIST,
     REPOSITORY_MISMATCH,
     WORKTREE_MISMATCH,
     compare_locus,
 )
 from taskpin.errors import TaskPinError
+from taskpin.instruction import digest_instruction, digest_instruction_text
 from taskpin.project import project_locus, project_paths, project_snapshot
 from taskpin.schema import (
     APPROVAL_SCHEMA_VERSION,
@@ -53,6 +56,7 @@ __all__ = [
     "CAPABILITY_ID",
     "CAPABILITY_VERSION",
     "DEFAULT_APPROVAL_PATH",
+    "INSTRUCTION_DRIFT",
     "PATH_OUTSIDE_ALLOWLIST",
     "PRODUCT_FAMILY",
     "REPOSITORY_MISMATCH",
@@ -63,6 +67,8 @@ __all__ = [
     "build_approval",
     "canonical_snapshot_bytes",
     "compare_locus",
+    "digest_instruction",
+    "digest_instruction_text",
     "digest_snapshot",
     "normalize_approval",
     "normalize_snapshot",
