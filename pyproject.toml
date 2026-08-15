@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taskpin"
+version = "0.1.0"
+description = "Deterministic Git-locus integrity primitive: sealed six-field snapshot, canonicalization, and record digest"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12,<3.13"
+authors = [
+  { name = "SaltyDiff" },
+]
+keywords = [
+  "saltydiff",
+  "taskpin",
+  "deterministic",
+  "git",
+  "integrity",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+dependencies = [
+  "salt-grain==0.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+  "build>=1.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/SaltyDiff/taskpin"
+Repository = "https://github.com/SaltyDiff/taskpin"
+Issues = "https://github.com/SaltyDiff/taskpin/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+taskpin = ["py.typed"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+src = ["src", "tests"]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "BLE", "C4", "DTZ", "PIE", "RUF", "SIM", "TRY", "FURB"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["taskpin"]

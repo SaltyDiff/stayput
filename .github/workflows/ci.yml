@@ -1,0 +1,64 @@
+name: ci
+
+on:
+  push:
+    branches: [main, "cursor/**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package and dev tools
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e ".[dev]"
+
+      - name: Ruff
+        run: python -m ruff check src tests
+
+      - name: Pytest
+        run: python -m pytest -q
+
+      - name: Build wheel and sdist
+        run: python -m build -o dist
+
+      - name: Fresh-wheel install smoke
+        run: |
+          python -m venv /tmp/taskpin-fresh
+          /tmp/taskpin-fresh/bin/python -m pip install -U pip
+          wheel="$(ls dist/taskpin-*.whl | head -n1)"
+          /tmp/taskpin-fresh/bin/python -m pip install "$wheel"
+          /tmp/taskpin-fresh/bin/python - <<'PY'
+          import importlib.metadata
+          from taskpin import (
+              CAPABILITY_VERSION,
+              __version__,
+              digest_snapshot,
+              snapshot,
+              verify_approval,
+              build_approval,
+          )
+
+          assert __version__ == "0.1.0"
+          assert importlib.metadata.version("taskpin") == "0.1.0"
+          assert importlib.metadata.version("salt-grain") == "0.1.0"
+          assert CAPABILITY_VERSION == "0.1.0"
+
+          snap = snapshot(
+              repo_id="3073f9a9961e954de80ca5ae1239813d1e3e7e36",
+              base_commit="1a09b140a9c21ec2d47dd07ce385a348bf78820d",
+          )
+          assert digest_snapshot(snap) == digest_snapshot(snap)
+          checked = verify_approval(build_approval(snap))
+          assert checked["ok"] is True
+          print("FRESH_WHEEL_SMOKE_OK")
+          PY
