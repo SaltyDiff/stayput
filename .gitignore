@@ -8,3 +8,5 @@ dist/
 .mypy_cache/
 .venv/
 venv/
+dist/
+build/
