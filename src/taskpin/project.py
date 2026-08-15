@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -51,6 +52,7 @@ def project_paths(
     cwd: Path | str | None,
     sealed_base_commit: str,
     *,
+    exclude_paths: Sequence[str] = (),
     git_bin: str = "git",
 ) -> list[str]:
     """Sorted unique Git-visible delivered paths since the sealed base."""
@@ -62,7 +64,14 @@ def project_paths(
         sealed_base_commit,
         git_bin=git_bin,
     )
-    return sorted({canonicalize_git_path(raw) for raw in raw_paths})
+    excluded = set(exclude_paths)
+    return sorted(
+        {
+            path
+            for path in (canonicalize_git_path(raw) for raw in raw_paths)
+            if path not in excluded
+        }
+    )
 
 
 def project_snapshot(

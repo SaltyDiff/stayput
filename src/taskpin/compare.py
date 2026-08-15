@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +31,7 @@ def compare_locus(
     cwd: Path | str | None = None,
     *,
     instruction_bytes: bytes | None = None,
+    exclude_paths: Sequence[str] = (),
     git_bin: str = "git",
 ) -> dict[str, Any]:
     """Compare sealed snapshot locus, paths, and optional instruction bytes.
@@ -107,6 +108,7 @@ def compare_locus(
     delivered_paths = project_paths(
         root,
         sealed_locus["base_commit"],
+        exclude_paths=exclude_paths,
         git_bin=git_bin,
     )
     for path in violating_paths(delivered_paths, allowed, toplevel):

@@ -8,7 +8,9 @@ Deterministic integrity primitive for the git locus an operator explicitly seale
 
 **T3** adds changed-path projection and `PATH_OUTSIDE_ALLOWLIST`.
 
-**T4** adds optional instruction-byte verification and `INSTRUCTION_DRIFT`. There is no save/check CLI or host integration yet.
+**T4** adds optional instruction-byte verification and `INSTRUCTION_DRIFT`.
+
+**T5** adds library `save` / `check` for `.taskpin/approval.json`. There is no CLI or host integration yet.
 
 ## Guarantee (when later `check` exists)
 
@@ -74,6 +76,14 @@ python -m pytest -q
 CHECK `repo_id` is recomputed from the **sealed** `base_commit`, not delivered HEAD. Shallow clones, grafts, and bare repos fail closed. Replace refs are disabled during identity reads. `merge-base --is-ancestor` exit 128 is `CANNOT_PROVE_ANCESTRY`, not a mismatch.
 
 Delivered paths are the sorted union of committed-since-base, staged, unstaged tracked, and untracked-not-ignored paths. Renames contribute both sides. `allowed_paths` is a literal prefix set; `src/auth` does not match `src/auth_backup`. A symlink whose resolved target leaves the repository is `PATH_OUTSIDE_ALLOWLIST`. Inability to project paths is `CANNOT_PROJECT_PATHS` / `UNCANONICAL_PATH`, not MATCH.
+
+## Approval artifact (T5)
+
+`save(cwd, replace=False)` writes `taskpin.approval.v0.1` to `.taskpin/approval.json` under `cwd` unless `path` is supplied. An existing file fails with `APPROVAL_ALREADY_EXISTS` unless `replace=True`.
+
+`check(cwd)` reads that artifact, verifies `record_digest` before trusting the snapshot, then compares the delivered Git locus. Integrity failures are errors, not mismatches. Check never writes or repairs the file.
+
+`cwd` alone never implies approval. There is no SessionStart save, TOFU, or silent overwrite.
 
 ## Windows
 

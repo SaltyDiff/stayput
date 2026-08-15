@@ -2,6 +2,8 @@
 
 ## 0.1.0
 
+- T5: library `save` / `check` for `.taskpin/approval.json`
+- T5: explicit `replace=True` required to overwrite; `record_digest` verified before compare
 - T4: optional instruction-byte digest and `INSTRUCTION_DRIFT`
 - T4: sealed digest without bytes is `INSTRUCTION_REQUIRED`, not drift
 - T3: changed-path projection and `PATH_OUTSIDE_ALLOWLIST`
@@ -12,4 +14,4 @@
 - T1: `taskpin.approval.v0.1` wrapper with `record_digest`
 - T1: salt-grain canonicalization and digest verification
 - T1: golden vectors for canonical bytes and digests
-- No CLI, hooks, save/check workflow, or host adapters
+- No CLI, hooks, or host adapters
