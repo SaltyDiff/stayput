@@ -75,6 +75,13 @@ Capture of prompt bytes is not approval. The human still runs `stayput save`.
 | `1` | operational ERROR (usage, missing approval, cannot prove) |
 | `2` | `check` MISMATCH |
 
+JSON `"ok": true` is not success. A completed MISMATCH is also `ok=true`.
+Honor the process exit code. StayPut does not check branch names.
+
+Locus/path classes: `REPOSITORY_MISMATCH`, `WORKTREE_MISMATCH`,
+`BASE_COMMIT_MISMATCH`, `PATH_OUTSIDE_ALLOWLIST`. See
+[`docs/failures.md`](docs/failures.md).
+
 ## CLI
 
 ```bash
@@ -100,9 +107,12 @@ Same flow everywhere: operator `save` → agent work → hook/CI `check`.
 | OpenHands | [`examples/openhands/`](examples/openhands/) |
 | Ordinary CI | [`examples/ci/`](examples/ci/) |
 
-CI needs full history (`fetch-depth: 0`). Shallow clones often fail closed.
+CI needs full history (`fetch-depth: 0`). Shallow clones fail closed
+(`SHALLOW_REPOSITORY`, exit `1`). Honor the process exit code; do not
+gate on JSON `"ok": true`.
 
-See [`docs/usage.md`](docs/usage.md) and [`examples/README.md`](examples/README.md).
+See [`docs/usage.md`](docs/usage.md), [`docs/failures.md`](docs/failures.md),
+and [`examples/README.md`](examples/README.md).
 
 ## Snapshot (`stayput.snapshot.v0.1`)
 

@@ -13,13 +13,18 @@ Required flow:
 None of these examples invoke `stayput save`.
 SessionStart / UserPromptSubmit / agent-reported metadata are not approval.
 
-| Host | Config | Check command |
+| Host | Config (copy to) | Hook script (copy of `check.sh`) |
 |---|---|---|
-| Claude Code | `claude-code/settings.json` | `examples/check.sh` |
-| Cursor / Cursor Cloud | `cursor/hooks.json` | `examples/check.sh` |
-| OpenHands | `openhands/hooks.json` | `examples/check.sh` |
+| Claude Code | `claude-code/settings.json` → `.claude/settings.json` | `.claude/hooks/stayput-check.sh` |
+| Cursor / Cursor Cloud | `cursor/hooks.json` → `.cursor/hooks.json` | `.cursor/hooks/stayput-check.sh` |
+| OpenHands | `openhands/hooks.json` → `.openhands/hooks.json` | `.openhands/hooks/stayput-check.sh` |
 | Ordinary CI | `ci/github-actions-check.yml` | `stayput check --json` |
 
 `check.sh` only changes directory (when a project env var is set),
 drains stdin, and execs `stayput check --json`.
+Claude Code uses `$CLAUDE_PROJECT_DIR`; OpenHands uses
+`$OPENHANDS_PROJECT_DIR`; any host may set `$STAYPUT_CWD`.
 Git identity is read by StayPut from the repository, not from hook JSON.
+
+Failure classes and the MISMATCH vs ERROR distinction:
+[`docs/failures.md`](../docs/failures.md).

@@ -1,10 +1,12 @@
 {
-  "hooks": {
-    "stop": [
-      {
-        "matcher": "*",
-        "command": "examples/check.sh"
-      }
-    ]
-  }
+  "stop": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "command": ".openhands/hooks/stayput-check.sh"
+        }
+      ]
+    }
+  ]
 }

@@ -1,5 +1,8 @@
 # Documentation example — not a custom GitHub Action product.
 # StayPut remains an ordinary CLI. Copy into a consumer workflow.
+#
+# Honor the process exit code (0 MATCH, 1 ERROR, 2 MISMATCH).
+# Do not gate on JSON "ok": true — MISMATCH also has ok=true.
 name: stayput-check
 on:
   pull_request:
