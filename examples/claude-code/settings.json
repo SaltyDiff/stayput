@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "examples/check.sh"
+            "command": ".claude/hooks/stayput-check.sh"
           }
         ]
       }

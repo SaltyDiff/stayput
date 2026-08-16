@@ -3,7 +3,7 @@
   "hooks": {
     "stop": [
       {
-        "command": "examples/check.sh"
+        "command": ".cursor/hooks/stayput-check.sh"
       }
     ]
   }

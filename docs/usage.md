@@ -43,6 +43,11 @@ Exact bytes. Capture ≠ approve.
 
 `0` MATCH / success · `1` ERROR · `2` MISMATCH
 
+JSON `"ok": true` is not success. MISMATCH is also `ok=true` (exit `2`).
+ERROR is `ok=false` (exit `1`). See [`failures.md`](failures.md) for
+`REPOSITORY_MISMATCH`, `WORKTREE_MISMATCH`, `BASE_COMMIT_MISMATCH`, and
+`PATH_OUTSIDE_ALLOWLIST`. StayPut does not check branch names.
+
 ## Hosts
 
 Copy the matching example. Do not import a host SDK into StayPut.
@@ -50,4 +55,4 @@ Copy the matching example. Do not import a host SDK into StayPut.
 - Claude Code: `examples/claude-code/`
 - Cursor: `examples/cursor/`
 - OpenHands: `examples/openhands/`
-- CI: `examples/ci/` (full Git history required)
+- CI: `examples/ci/` (full Git history required; honor the process exit code)
