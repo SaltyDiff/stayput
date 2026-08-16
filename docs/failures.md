@@ -16,7 +16,7 @@ tampered `record_digest`, sealed instruction bytes omitted, usage).
 Do **not** treat `"ok": true` as success. A MISMATCH payload is `ok=true`
 because StayPut produced a structured result, not because the locus matched.
 
-StayPut does **not** check branch names. The 0.1.0 snapshot has no branch
+StayPut does not check branch names. The 0.1.0 snapshot has no branch
 field. Git objects and worktree identity are the authority — not
 agent-reported branch, worktree, or hook payload metadata.
 
